@@ -35,6 +35,17 @@ export default function InvoiceDetailsPage({
     loadInvoice();
   }, [id]);
 
+  const handleStatusChange = async (status: "draft" | "generated" | "paid") => {
+    if (!invoice?.id) return;
+
+    await updateInvoiceStatus(invoice.id, status);
+
+    setInvoice({
+      ...invoice,
+      status,
+    });
+  };
+
   if (loading) {
     return (
       <>
@@ -52,16 +63,6 @@ export default function InvoiceDetailsPage({
       </>
     );
   }
-  const handleStatusChange = async (status: "draft" | "generated" | "paid") => {
-    if (!invoice?.id) return;
-
-    await updateInvoiceStatus(invoice.id, status);
-
-    setInvoice({
-      ...invoice,
-      status,
-    });
-  };
 
   return (
     <>
@@ -74,9 +75,9 @@ export default function InvoiceDetailsPage({
           className="print:hidden"
         >
           <h1 className="text-4xl font-black text-slate-800">Invoice</h1>
-
           <p className="text-slate-600 mt-1">{invoice.invoiceNo}</p>
         </motion.div>
+
         <div className="print:hidden flex flex-wrap gap-3">
           {["draft", "generated", "paid"].map((status) => (
             <button
@@ -93,30 +94,29 @@ export default function InvoiceDetailsPage({
               {status.toUpperCase()}
             </button>
           ))}
+
+          <button
+            onClick={() => window.print()}
+            className="rounded-xl bg-sky-600 px-5 py-3 font-semibold text-white hover:bg-sky-700"
+          >
+            Download / Print Invoice
+          </button>
         </div>
-        <button
-          onClick={() => window.print()}
-          className="print:hidden rounded-xl bg-sky-600 px-5 py-3 font-semibold text-white hover:bg-sky-700"
-        >
-          Download / Print Invoice
-        </button>
 
         <div
           id="invoice-print-area"
-          className="rounded-3xl border border-sky-100 bg-white/80 backdrop-blur-xl p-8 shadow-lg max-w-4xl print:shadow-none print:border-none print:bg-white"
+          className="rounded-3xl border border-sky-100 bg-white/80 backdrop-blur-xl p-8 shadow-lg max-w-5xl print:shadow-none print:border-none print:bg-white"
         >
           <div className="flex justify-between border-b pb-6">
             <div>
               <h2 className="text-2xl font-black text-slate-800">
                 RKP Associates
               </h2>
-
               <p className="text-slate-500">Professional Services Invoice</p>
             </div>
 
             <div className="text-right">
               <p className="font-semibold">{invoice.invoiceNo}</p>
-
               <p className="text-sm text-slate-500">Status: {invoice.status}</p>
             </div>
           </div>
@@ -124,7 +124,6 @@ export default function InvoiceDetailsPage({
           <div className="grid gap-6 py-6 border-b md:grid-cols-2">
             <div>
               <p className="text-sm text-slate-500">Bill To</p>
-
               <h3 className="text-xl font-bold text-slate-800">
                 {invoice.clientName}
               </h3>
@@ -132,7 +131,6 @@ export default function InvoiceDetailsPage({
 
             <div className="md:text-right">
               <p className="text-sm text-slate-500">Billing Rate</p>
-
               <h3 className="text-xl font-bold text-slate-800">
                 ₹{invoice.billingRate.toLocaleString("en-IN")} / hr
               </h3>
@@ -143,29 +141,50 @@ export default function InvoiceDetailsPage({
             <table className="w-full">
               <thead className="bg-sky-50">
                 <tr>
-                  <th className="p-4 text-left">Description</th>
+                  <th className="p-4 text-left">Date</th>
+                  <th className="p-4 text-left">Employee</th>
+                  <th className="p-4 text-left">Assignment</th>
                   <th className="p-4 text-right">Hours</th>
-                  <th className="p-4 text-right">Rate</th>
                   <th className="p-4 text-right">Amount</th>
                 </tr>
               </thead>
 
               <tbody>
-                <tr className="border-t">
-                  <td className="p-4">Professional service hours</td>
-
-                  <td className="p-4 text-right">
-                    {invoice.totalHours.toFixed(2)}
-                  </td>
-
-                  <td className="p-4 text-right">
-                    ₹{invoice.billingRate.toLocaleString("en-IN")}
-                  </td>
-
-                  <td className="p-4 text-right font-semibold">
-                    ₹{invoice.amount.toLocaleString("en-IN")}
-                  </td>
-                </tr>
+                {invoice.lineItems && invoice.lineItems.length > 0 ? (
+                  invoice.lineItems.map((item) => (
+                    <tr key={item.timesheetId} className="border-t">
+                      <td className="p-4">{item.date}</td>
+                      <td className="p-4">{item.employeeName}</td>
+                      <td className="p-4">
+                        <p className="font-medium">{item.assignmentName}</p>
+                        <p className="text-sm text-slate-500">
+                          {item.description || "-"}
+                        </p>
+                      </td>
+                      <td className="p-4 text-right">
+                        {Number(item.hours || 0).toFixed(2)}
+                      </td>
+                      <td className="p-4 text-right font-semibold">
+                        ₹
+                        {(
+                          Number(item.hours || 0) * invoice.billingRate
+                        ).toLocaleString("en-IN")}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr className="border-t">
+                    <td className="p-4" colSpan={3}>
+                      Professional service hours
+                    </td>
+                    <td className="p-4 text-right">
+                      {invoice.totalHours.toFixed(2)}
+                    </td>
+                    <td className="p-4 text-right font-semibold">
+                      ₹{invoice.amount.toLocaleString("en-IN")}
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -173,8 +192,14 @@ export default function InvoiceDetailsPage({
           <div className="flex justify-end border-t pt-6">
             <div className="w-full max-w-sm space-y-3">
               <div className="flex justify-between">
-                <span>Total</span>
+                <span>Total Hours</span>
+                <span className="font-bold">
+                  {invoice.totalHours.toFixed(2)}
+                </span>
+              </div>
 
+              <div className="flex justify-between">
+                <span>Total</span>
                 <span className="font-bold">
                   ₹{invoice.amount.toLocaleString("en-IN")}
                 </span>
@@ -182,7 +207,6 @@ export default function InvoiceDetailsPage({
 
               <div className="flex justify-between text-2xl font-black text-slate-800">
                 <span>Payable</span>
-
                 <span>₹{invoice.amount.toLocaleString("en-IN")}</span>
               </div>
             </div>
@@ -190,8 +214,8 @@ export default function InvoiceDetailsPage({
 
           <div className="mt-10 border-t pt-6 text-sm text-slate-500">
             <p>
-              This invoice has been generated from recorded work sessions and
-              billable hours in the RKP Associates management system.
+              This invoice has been generated from recorded billable work
+              sessions in the RKP Associates management system.
             </p>
           </div>
         </div>

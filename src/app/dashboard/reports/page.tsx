@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 
 import DashboardHeader from "@/components/dashboard/dashboard-header";
@@ -11,6 +12,9 @@ import {
   createInvoice,
   generateInvoiceNo,
 } from "@/lib/services/invoice-service";
+import { markTimesheetsAsBilled } from "@/lib/services/timesheet-service";
+
+import { Input } from "@/components/ui/input";
 
 import {
   Select,
@@ -21,10 +25,17 @@ import {
 } from "@/components/ui/select";
 
 export default function ReportsPage() {
+  const router = useRouter();
+
   const [clients, setClients] = useState<any[]>([]);
   const [selectedClient, setSelectedClient] = useState("");
+
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+
   const [billingData, setBillingData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
     async function loadClients() {
@@ -47,14 +58,17 @@ export default function ReportsPage() {
 
   const billingAmount = billingData ? billingData.totalHours * billingRate : 0;
 
-  const handleClientChange = async (clientId: string) => {
-    setSelectedClient(clientId);
-    setBillingData(null);
+  const loadBillingReport = async (
+    clientId: string,
+    start?: string,
+    end?: string,
+  ) => {
+    if (!clientId) return;
 
     try {
       setLoading(true);
 
-      const data = await getClientBillingData(clientId);
+      const data = await getClientBillingData(clientId, start, end);
       setBillingData(data);
     } catch (error) {
       console.error("Failed to load billing report:", error);
@@ -63,30 +77,69 @@ export default function ReportsPage() {
     }
   };
 
+  const handleClientChange = async (clientId: string) => {
+    setSelectedClient(clientId);
+    setBillingData(null);
+
+    await loadBillingReport(clientId, fromDate, toDate);
+  };
+
+  const handleApplyFilter = async () => {
+    if (!selectedClient) {
+      alert("Please select a client first.");
+      return;
+    }
+
+    await loadBillingReport(selectedClient, fromDate, toDate);
+  };
+
   const handleGenerateInvoice = async () => {
     if (!selectedClientData || !billingData) {
       alert("Please select a client first.");
       return;
     }
 
+    if (billingData.timesheets.length === 0 || billingData.totalHours <= 0) {
+      alert("No unbilled billable sessions available for this client.");
+      return;
+    }
+
     try {
-      await createInvoice({
+      setGenerating(true);
+
+      const invoiceRef = await createInvoice({
         invoiceNo: generateInvoiceNo(),
 
         clientId: selectedClientData.id,
         clientName: selectedClientData.clientName,
 
+        fromDate,
+        toDate,
+
         totalHours: billingData.totalHours,
         billingRate,
         amount: billingAmount,
 
+        lineItems: billingData.timesheets.map((item: any) => ({
+          timesheetId: item.id,
+          date: item.date,
+          employeeName: item.userName,
+          assignmentName: item.assignmentName,
+          hours: Number(item.totalHours || 0),
+          description: item.workDescription || "",
+        })),
+
         status: "generated",
       });
 
-      alert("Invoice generated successfully");
+      await markTimesheetsAsBilled(billingData.timesheets, invoiceRef.id);
+
+      router.push(`/dashboard/invoices/${invoiceRef.id}`);
     } catch (error) {
-      console.error(error);
+      console.error("Failed to generate invoice:", error);
       alert("Failed to generate invoice");
+    } finally {
+      setGenerating(false);
     }
   };
 
@@ -102,7 +155,7 @@ export default function ReportsPage() {
           <h1 className="text-4xl font-black text-slate-800">Reports</h1>
 
           <p className="text-slate-600 mt-1">
-            Client-wise billing and work-hour reports
+            Client-wise billing and period-wise unbilled work-hour reports
           </p>
         </motion.div>
 
@@ -116,19 +169,42 @@ export default function ReportsPage() {
             Client Billing Report
           </h2>
 
-          <Select value={selectedClient} onValueChange={handleClientChange}>
-            <SelectTrigger className="max-w-md bg-white">
-              <SelectValue placeholder="Select Client" />
-            </SelectTrigger>
+          <div className="grid gap-4 md:grid-cols-4">
+            <Select value={selectedClient} onValueChange={handleClientChange}>
+              <SelectTrigger className="bg-white">
+                <SelectValue placeholder="Select Client" />
+              </SelectTrigger>
 
-            <SelectContent>
-              {clients.map((client) => (
-                <SelectItem key={client.id} value={client.id}>
-                  {client.clientName}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+              <SelectContent>
+                {clients.map((client) => (
+                  <SelectItem key={client.id} value={client.id}>
+                    {client.clientName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Input
+              type="date"
+              value={fromDate}
+              onChange={(e) => setFromDate(e.target.value)}
+              className="bg-white"
+            />
+
+            <Input
+              type="date"
+              value={toDate}
+              onChange={(e) => setToDate(e.target.value)}
+              className="bg-white"
+            />
+
+            <button
+              onClick={handleApplyFilter}
+              className="rounded-xl bg-sky-600 px-5 py-2 font-semibold text-white hover:bg-sky-700"
+            >
+              Apply Filter
+            </button>
+          </div>
 
           {loading && (
             <div className="mt-6 rounded-2xl border bg-white/80 p-6 text-slate-500">
@@ -140,7 +216,7 @@ export default function ReportsPage() {
             <div className="mt-6 space-y-5">
               <div className="grid gap-4 md:grid-cols-4">
                 <div className="rounded-2xl border bg-white/80 p-5 shadow-sm">
-                  <p className="text-sm text-slate-500">Total Hours</p>
+                  <p className="text-sm text-slate-500">Unbilled Hours</p>
 
                   <h3 className="text-3xl font-bold text-slate-800">
                     {billingData.totalHours.toFixed(2)}
@@ -156,7 +232,7 @@ export default function ReportsPage() {
                 </div>
 
                 <div className="rounded-2xl border bg-white/80 p-5 shadow-sm">
-                  <p className="text-sm text-slate-500">Amount</p>
+                  <p className="text-sm text-slate-500">Invoice Amount</p>
 
                   <h3 className="text-3xl font-bold text-slate-800">
                     ₹{billingAmount.toLocaleString("en-IN")}
@@ -164,18 +240,20 @@ export default function ReportsPage() {
                 </div>
 
                 <div className="rounded-2xl border bg-white/80 p-5 shadow-sm">
-                  <p className="text-sm text-slate-500">Sessions</p>
+                  <p className="text-sm text-slate-500">Unbilled Sessions</p>
 
                   <h3 className="text-3xl font-bold text-slate-800">
                     {billingData.timesheets.length}
                   </h3>
                 </div>
               </div>
+
               <button
                 onClick={handleGenerateInvoice}
-                className="rounded-xl bg-sky-600 px-5 py-3 font-semibold text-white hover:bg-sky-700"
+                disabled={generating}
+                className="rounded-xl bg-sky-600 px-5 py-3 font-semibold text-white hover:bg-sky-700 disabled:opacity-60"
               >
-                Generate Invoice
+                {generating ? "Generating Invoice..." : "Generate Invoice"}
               </button>
 
               <div className="rounded-2xl border bg-white/80 overflow-hidden">
@@ -197,7 +275,8 @@ export default function ReportsPage() {
                           colSpan={5}
                           className="p-6 text-center text-slate-500"
                         >
-                          No stopped work sessions found for this client.
+                          No unbilled work sessions found for this client and
+                          period.
                         </td>
                       </tr>
                     ) : (
@@ -225,7 +304,7 @@ export default function ReportsPage() {
 
           {!selectedClient && (
             <div className="mt-6 rounded-2xl border border-dashed bg-white/60 p-8 text-center text-slate-500">
-              Select a client to view billing report.
+              Select a client to view unbilled billing report.
             </div>
           )}
         </motion.div>

@@ -4,6 +4,9 @@ export interface Timesheet {
   userId: string;
   userName: string;
 
+  billingStatus?: "unbilled" | "billed";
+  invoiceId?: string;
+
   workType: "assignment" | "miscellaneous";
 
   assignmentId?: string;

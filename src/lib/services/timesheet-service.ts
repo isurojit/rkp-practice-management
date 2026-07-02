@@ -14,9 +14,9 @@ import { Timesheet } from "@/types/timesheet";
 export async function getTimesheets(): Promise<Timesheet[]> {
   const snapshot = await getDocs(collection(db, "timesheets"));
 
-  return snapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...(doc.data() as Omit<Timesheet, "id">),
+  return snapshot.docs.map((docItem) => ({
+    id: docItem.id,
+    ...(docItem.data() as Omit<Timesheet, "id">),
   }));
 }
 
@@ -50,7 +50,11 @@ export async function createTimesheet(data: Timesheet) {
     );
   }
 
-  return await addDoc(collection(db, "timesheets"), data);
+  return await addDoc(collection(db, "timesheets"), {
+    ...data,
+    billingStatus: data.workType === "assignment" ? "unbilled" : "not_billable",
+    createdAt: new Date(),
+  });
 }
 
 export async function checkoutTimesheet(id: string, checkIn: string) {
@@ -71,9 +75,9 @@ export async function getUserTimesheets(userId: string): Promise<Timesheet[]> {
 
   const snapshot = await getDocs(q);
 
-  return snapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...(doc.data() as Omit<Timesheet, "id">),
+  return snapshot.docs.map((docItem) => ({
+    id: docItem.id,
+    ...(docItem.data() as Omit<Timesheet, "id">),
   }));
 }
 
@@ -87,9 +91,9 @@ export async function getAssignmentTimesheets(
 
   const snapshot = await getDocs(q);
 
-  return snapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...(doc.data() as Omit<Timesheet, "id">),
+  return snapshot.docs.map((docItem) => ({
+    id: docItem.id,
+    ...(docItem.data() as Omit<Timesheet, "id">),
   }));
 }
 
@@ -101,8 +105,26 @@ export async function getActiveTimesheets(): Promise<Timesheet[]> {
 
   const snapshot = await getDocs(q);
 
-  return snapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...(doc.data() as Omit<Timesheet, "id">),
+  return snapshot.docs.map((docItem) => ({
+    id: docItem.id,
+    ...(docItem.data() as Omit<Timesheet, "id">),
   }));
+}
+
+export async function markTimesheetsAsBilled(
+  timesheets: Timesheet[],
+  invoiceId: string,
+) {
+  const billableTimesheets = timesheets.filter(
+    (item) => item.id && item.workType === "assignment",
+  );
+
+  await Promise.all(
+    billableTimesheets.map((item) =>
+      updateDoc(doc(db, "timesheets", item.id as string), {
+        billingStatus: "billed",
+        invoiceId,
+      }),
+    ),
+  );
 }

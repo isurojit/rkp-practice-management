@@ -1,8 +1,10 @@
+export type UserRole = "super_admin" | "manager" | "employee";
+
 export interface AppUser {
   uid: string;
   name: string;
   email: string;
-  role: "super_admin" | "manager" | "employee";
+  role: UserRole;
   designation?: string;
   active?: boolean;
   createdAt?: any;

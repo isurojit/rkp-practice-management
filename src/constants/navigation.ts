@@ -6,6 +6,13 @@ import {
   Clock3,
   BarChart3,
   ReceiptText,
+  BarChartBig,
+  LineChart,
+  KanbanSquare,
+  NotebookText,
+  CalendarCheck,
+  CalendarMinus,
+  Settings,
 } from "lucide-react";
 
 export const navigation = [
@@ -13,35 +20,84 @@ export const navigation = [
     title: "Dashboard",
     url: "/dashboard",
     icon: LayoutDashboard,
+    roles: ["super_admin", "manager", "employee"],
+  },
+  {
+    title: "Productivity",
+    url: "/dashboard/productivity",
+    icon: BarChartBig,
+    roles: ["super_admin", "manager"],
+  },
+  {
+    title: "Client Analytics",
+    url: "/dashboard/client-analytics",
+    icon: LineChart,
+    roles: ["super_admin", "manager"],
   },
   {
     title: "Employees",
     url: "/dashboard/users",
     icon: Users,
+    roles: ["super_admin", "manager"],
   },
   {
     title: "Clients",
     url: "/dashboard/clients",
     icon: Building2,
+    roles: ["super_admin", "manager"],
   },
   {
     title: "Assignments",
     url: "/dashboard/assignments",
     icon: FolderKanban,
+    roles: ["super_admin", "manager"],
+  },
+  {
+    title: "Assignment Board",
+    url: "/dashboard/assignment-board",
+    icon: KanbanSquare,
+    roles: ["super_admin", "manager"],
   },
   {
     title: "Timesheets",
     url: "/dashboard/timesheets",
     icon: Clock3,
+    roles: ["super_admin", "manager", "employee"],
+  },
+  {
+    title: "Attendance",
+    url: "/dashboard/attendance",
+    icon: CalendarCheck,
+    roles: ["super_admin", "manager", "employee"],
+  },
+  {
+    title: "Leave",
+    url: "/dashboard/leave",
+    icon: CalendarMinus,
+    roles: ["super_admin", "manager", "employee"],
+  },
+  {
+    title: "Narrations",
+    url: "/dashboard/narrations",
+    icon: NotebookText,
+    roles: ["super_admin", "manager"],
   },
   {
     title: "Reports",
     url: "/dashboard/reports",
     icon: BarChart3,
+    roles: ["super_admin", "manager"],
   },
   {
     title: "Invoices",
     url: "/dashboard/invoices",
     icon: ReceiptText,
+    roles: ["super_admin"],
+  },
+  {
+    title: "Settings",
+    url: "/dashboard/settings",
+    icon: Settings,
+    roles: ["super_admin"],
   },
 ];
