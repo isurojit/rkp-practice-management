@@ -6,10 +6,12 @@ import {
   doc,
   query,
   where,
+  getDoc,
 } from "firebase/firestore";
 
 import { db } from "@/lib/firebase";
 import { Timesheet } from "@/types/timesheet";
+import { logActivity } from "./activity-service";
 
 export async function getTimesheets(): Promise<Timesheet[]> {
   const snapshot = await getDocs(collection(db, "timesheets"));
@@ -50,11 +52,31 @@ export async function createTimesheet(data: Timesheet) {
     );
   }
 
-  return await addDoc(collection(db, "timesheets"), {
+  const docRef = await addDoc(collection(db, "timesheets"), {
     ...data,
     billingStatus: data.workType === "assignment" ? "unbilled" : "not_billable",
     createdAt: new Date(),
   });
+
+  await logActivity({
+    assignmentId: data.assignmentId,
+    assignmentName: data.assignmentName,
+
+    userId: data.userId,
+    userName: data.userName,
+
+    entityType: "timesheet",
+    entityId: docRef.id,
+
+    action: "Started Work",
+    description: `${data.userName} started ${
+      data.workType === "miscellaneous"
+        ? "miscellaneous work"
+        : `working on ${data.assignmentName}`
+    }`,
+  });
+
+  return docRef;
 }
 
 export async function checkoutTimesheet(id: string, checkIn: string) {
@@ -68,6 +90,30 @@ export async function checkoutTimesheet(id: string, checkIn: string) {
     totalHours: Number(totalHours.toFixed(2)),
     status: "stopped",
   });
+
+  const session = await getDoc(doc(db, "timesheets", id));
+
+  if (session.exists()) {
+    const data = session.data() as Timesheet;
+
+    await logActivity({
+      assignmentId: data.assignmentId,
+      assignmentName: data.assignmentName,
+
+      userId: data.userId,
+      userName: data.userName,
+
+      entityType: "timesheet",
+      entityId: id,
+
+      action: "Stopped Work",
+      description: `${data.userName} stopped ${
+        data.workType === "miscellaneous"
+          ? "miscellaneous work"
+          : `working on ${data.assignmentName}`
+      }`,
+    });
+  }
 }
 
 export async function getUserTimesheets(userId: string): Promise<Timesheet[]> {

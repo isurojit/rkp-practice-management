@@ -10,6 +10,7 @@ import {
 
 import { db } from "@/lib/firebase";
 import { AssignmentChecklistItem } from "@/types/assignment-checklist";
+import { checklistTemplates } from "@/constants/checklist-templates";
 
 export async function getAssignmentChecklist(
   assignmentId: string,
@@ -41,4 +42,23 @@ export async function toggleChecklistItem(itemId: string, completed: boolean) {
     completed,
     completedAt: completed ? new Date() : null,
   });
+}
+
+export async function createChecklistFromTemplate(
+  assignmentId: string,
+  assignmentType: string,
+) {
+  const template =
+    checklistTemplates[assignmentType] || checklistTemplates.other;
+
+  await Promise.all(
+    template.map((title) =>
+      addDoc(collection(db, "assignment_checklists"), {
+        assignmentId,
+        title,
+        completed: false,
+        createdAt: new Date(),
+      }),
+    ),
+  );
 }
