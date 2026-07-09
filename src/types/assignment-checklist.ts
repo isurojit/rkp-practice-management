@@ -7,6 +7,9 @@ export interface AssignmentChecklistItem {
 
   completed: boolean;
 
+  completedBy?: string;
+  completedByName?: string;
+
   createdAt?: any;
   completedAt?: any;
 }

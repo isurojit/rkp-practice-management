@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 
 import DashboardHeader from "@/components/dashboard/dashboard-header";
 import ActivityTimeline from "@/components/assignments/activity-timeline";
+import AssignmentChecklist from "@/components/assignments/assignment-checklist";
 
 import {
   getAssignmentById,
@@ -14,10 +15,24 @@ import {
 import { getAssignmentTimesheets } from "@/lib/services/timesheet-service";
 import { getAssignmentActivities } from "@/lib/services/activity-service";
 
+import {
+  getAssignmentChecklist,
+  toggleChecklistItem,
+} from "@/lib/services/assignment-checklist-service";
+
+import { getAssignmentHealth } from "@/lib/utils/assignment-health";
+
 import { Assignment } from "@/types/assignment";
 import { Timesheet } from "@/types/timesheet";
+import { AssignmentChecklistItem } from "@/types/assignment-checklist";
 
-const statuses = ["pending", "in_progress", "review", "completed", "billed"];
+const statuses = [
+  "pending",
+  "in_progress",
+  "review",
+  "completed",
+  "billed",
+] as const;
 
 export default function AssignmentDetailsPage({
   params,
@@ -29,6 +44,7 @@ export default function AssignmentDetailsPage({
   const [assignment, setAssignment] = useState<Assignment | null>(null);
   const [timesheets, setTimesheets] = useState<Timesheet[]>([]);
   const [activities, setActivities] = useState<any[]>([]);
+  const [checklist, setChecklist] = useState<AssignmentChecklistItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -42,6 +58,9 @@ export default function AssignmentDetailsPage({
 
         const activityLogs = await getAssignmentActivities(id);
         setActivities(activityLogs);
+
+        const checklistItems = await getAssignmentChecklist(id);
+        setChecklist(checklistItems);
       } catch (error) {
         console.error("Failed to load assignment:", error);
       } finally {
@@ -73,22 +92,52 @@ export default function AssignmentDetailsPage({
     }));
   }, [timesheets]);
 
-  const handleStatusChange = async (status: string) => {
+  const checklistProgress = useMemo(() => {
+    if (checklist.length === 0) return 0;
+
+    const completed = checklist.filter((item) => item.completed).length;
+
+    return Math.round((completed / checklist.length) * 100);
+  }, [checklist]);
+
+  const handleStatusChange = async (status: Assignment["status"]) => {
     if (!assignment?.id) return;
 
     await updateAssignmentStatus(assignment.id, status);
 
     setAssignment({
       ...assignment,
-      status: status as Assignment["status"],
+      status,
     });
+  };
+
+  const handleToggleChecklist = async (
+    item: AssignmentChecklistItem,
+    completed: boolean,
+  ) => {
+    if (!item.id) return;
+
+    await toggleChecklistItem(item.id, completed);
+
+    setChecklist((prev) =>
+      prev.map((checkItem) =>
+        checkItem.id === item.id
+          ? {
+              ...checkItem,
+              completed,
+            }
+          : checkItem,
+      ),
+    );
   };
 
   if (loading) {
     return (
       <>
         <DashboardHeader />
-        <div className="p-6">Loading assignment...</div>
+        <div className="min-h-screen bg-linear-to-br from-sky-50 via-blue-50 to-cyan-50 p-6">
+          Loading assignment...
+        </div>
       </>
     );
   }
@@ -97,7 +146,9 @@ export default function AssignmentDetailsPage({
     return (
       <>
         <DashboardHeader />
-        <div className="p-6">Assignment not found</div>
+        <div className="min-h-screen bg-linear-to-br from-sky-50 via-blue-50 to-cyan-50 p-6">
+          Assignment not found
+        </div>
       </>
     );
   }
@@ -105,10 +156,18 @@ export default function AssignmentDetailsPage({
   const estimatedHours = Number(assignment.estimatedHours || 0);
   const remainingHours = Math.max(0, estimatedHours - actualHours);
 
-  const progress =
+  const hoursProgress =
     estimatedHours > 0
       ? Math.min(100, Math.round((actualHours / estimatedHours) * 100))
       : 0;
+
+  const overallProgress = Math.round((hoursProgress + checklistProgress) / 2);
+
+  const health = getAssignmentHealth({
+    assignment,
+    actualHours,
+    checklistProgress,
+  });
 
   return (
     <>
@@ -125,12 +184,22 @@ export default function AssignmentDetailsPage({
 
           <p className="text-slate-600 mt-1">{assignment.clientName}</p>
 
-          <div className="mt-3 inline-flex rounded-full bg-sky-100 px-4 py-1 text-sm font-semibold text-sky-700">
-            {assignment.status.replace("_", " ").toUpperCase()}
+          <div className="mt-3 flex flex-wrap gap-3">
+            <span className="inline-flex rounded-full bg-sky-100 px-4 py-1 text-sm font-semibold text-sky-700">
+              {assignment.status.replace("_", " ").toUpperCase()}
+            </span>
+
+            <span className="inline-flex rounded-full bg-orange-100 px-4 py-1 text-sm font-semibold text-orange-700">
+              {assignment.priority.toUpperCase()}
+            </span>
+
+            <span className="inline-flex rounded-full bg-white/80 px-4 py-1 text-sm font-semibold text-slate-600">
+              Due: {assignment.dueDate}
+            </span>
           </div>
         </motion.div>
 
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-5">
           <div className="rounded-3xl border border-sky-100 bg-white/70 p-6 shadow-lg">
             <p className="text-sm text-slate-500">Estimated Hours</p>
             <h2 className="text-3xl font-black text-slate-800">
@@ -153,23 +222,52 @@ export default function AssignmentDetailsPage({
           </div>
 
           <div className="rounded-3xl border border-sky-100 bg-white/70 p-6 shadow-lg">
-            <p className="text-sm text-slate-500">Progress</p>
-            <h2 className="text-3xl font-black text-slate-800">{progress}%</h2>
+            <p className="text-sm text-slate-500">Checklist</p>
+            <h2 className="text-3xl font-black text-slate-800">
+              {checklistProgress}%
+            </h2>
           </div>
+
+          <div className="rounded-3xl border border-sky-100 bg-white/70 p-6 shadow-lg">
+            <p className="text-sm text-slate-500">Overall</p>
+            <h2 className="text-3xl font-black text-slate-800">
+              {overallProgress}%
+            </h2>
+          </div>
+        </div>
+
+        <div
+          className={`rounded-3xl border p-6 shadow-lg ${
+            health.color === "red"
+              ? "border-red-100 bg-red-50"
+              : health.color === "orange"
+                ? "border-orange-100 bg-orange-50"
+                : health.color === "green"
+                  ? "border-green-100 bg-green-50"
+                  : "border-sky-100 bg-white/70"
+          }`}
+        >
+          <p className="text-sm text-slate-500">Assignment Health</p>
+
+          <h2 className="mt-1 text-3xl font-black text-slate-800">
+            {health.label}
+          </h2>
+
+          <p className="mt-2 text-slate-600">{health.message}</p>
         </div>
 
         <div className="rounded-3xl border border-sky-100 bg-white/70 p-6 shadow-lg">
           <div className="flex justify-between mb-3">
             <span className="font-semibold text-slate-700">
-              Assignment Progress
+              Overall Progress
             </span>
-            <span className="text-slate-600">{progress}%</span>
+            <span className="text-slate-600">{overallProgress}%</span>
           </div>
 
           <div className="h-3 rounded-full bg-sky-100">
             <div
               className="h-3 rounded-full bg-sky-600 transition-all"
-              style={{ width: `${progress}%` }}
+              style={{ width: `${overallProgress}%` }}
             />
           </div>
         </div>
@@ -195,6 +293,11 @@ export default function AssignmentDetailsPage({
             ))}
           </div>
         </div>
+
+        <AssignmentChecklist
+          checklist={checklist}
+          onToggle={handleToggleChecklist}
+        />
 
         <div className="grid gap-6 xl:grid-cols-2">
           <div className="rounded-3xl border border-sky-100 bg-white/70 p-6 shadow-lg">
@@ -261,7 +364,9 @@ export default function AssignmentDetailsPage({
                         {item.userName}
                       </p>
                       <p className="text-sm text-slate-500">
-                        {item.workDescription || "No narration"}
+                        {item.workDescription ||
+                          item.miscellaneousNarration ||
+                          "No narration"}
                       </p>
                     </div>
 
