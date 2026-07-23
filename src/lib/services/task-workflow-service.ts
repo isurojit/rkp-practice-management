@@ -1,14 +1,4 @@
-import {
-  addDoc,
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  query,
-  Timestamp,
-  updateDoc,
-  where,
-} from "firebase/firestore";
+import { doc, getDoc, Timestamp, updateDoc } from "firebase/firestore";
 
 import { db } from "@/lib/firebase";
 
@@ -20,42 +10,20 @@ import {
   EmployeeTaskStatus,
 } from "@/types/assignment";
 
+import { Timesheet } from "@/types/timesheet";
+
+import {
+  completeTimesheet,
+  createAssignmentWorkSession,
+  getActiveTimesheet,
+  getAssignmentTimesheets,
+  getTimesheetById,
+  pauseTimesheet,
+} from "@/lib/services/timesheet-service";
+
+import { logActivity } from "@/lib/services/activity-service";
+
 const ASSIGNMENTS_COLLECTION = "assignments";
-const TIMESHEETS_COLLECTION = "timesheets";
-
-export type TaskSessionStatus = "active" | "paused" | "completed";
-
-export type TaskSessionAction = "start" | "resume";
-
-export interface TaskWorkSession {
-  id?: string;
-
-  assignmentId: string;
-  assignmentName: string;
-
-  clientId: string;
-  clientName: string;
-
-  userId: string;
-  userName: string;
-  userEmail?: string;
-
-  date: string;
-
-  startTime: any;
-  endTime?: any;
-
-  totalMinutes: number;
-  totalHours: number;
-
-  status: TaskSessionStatus;
-  actionType: TaskSessionAction;
-
-  narration?: string;
-
-  createdAt?: any;
-  updatedAt?: any;
-}
 
 interface TaskUser {
   uid: string;
@@ -66,105 +34,17 @@ interface TaskUser {
 interface TaskActionInput {
   assignmentId: string;
   user: TaskUser;
+  narration?: string;
 }
 
 interface TaskActionWithNarrationInput extends TaskActionInput {
   narration: string;
 }
 
-interface TaskWorkflowResult {
+export interface TaskWorkflowResult {
   assignmentStatus: AssignmentStatus;
   employeeStatus: EmployeeTaskStatus;
-  session?: TaskWorkSession;
-}
-
-function getTodayDate(): string {
-  const now = new Date();
-
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
-}
-
-function timestampToMilliseconds(value: unknown): number {
-  if (!value) {
-    return 0;
-  }
-
-  if (
-    typeof value === "object" &&
-    value !== null &&
-    "toMillis" in value &&
-    typeof (
-      value as {
-        toMillis?: unknown;
-      }
-    ).toMillis === "function"
-  ) {
-    return (
-      value as {
-        toMillis: () => number;
-      }
-    ).toMillis();
-  }
-
-  if (
-    typeof value === "object" &&
-    value !== null &&
-    "toDate" in value &&
-    typeof (
-      value as {
-        toDate?: unknown;
-      }
-    ).toDate === "function"
-  ) {
-    return (
-      value as {
-        toDate: () => Date;
-      }
-    )
-      .toDate()
-      .getTime();
-  }
-
-  const parsedDate = new Date(value as string | number | Date);
-
-  return Number.isNaN(parsedDate.getTime()) ? 0 : parsedDate.getTime();
-}
-
-function calculateSessionDuration(
-  startTime: unknown,
-  endTime: unknown,
-): {
-  totalMinutes: number;
-  totalHours: number;
-} {
-  const startMilliseconds = timestampToMilliseconds(startTime);
-
-  const endMilliseconds = timestampToMilliseconds(endTime);
-
-  if (startMilliseconds <= 0 || endMilliseconds <= startMilliseconds) {
-    return {
-      totalMinutes: 0,
-      totalHours: 0,
-    };
-  }
-
-  const durationMilliseconds = endMilliseconds - startMilliseconds;
-
-  const totalMinutes = Math.max(
-    0,
-    Math.round(durationMilliseconds / (1000 * 60)),
-  );
-
-  const totalHours = Number((totalMinutes / 60).toFixed(2));
-
-  return {
-    totalMinutes,
-    totalHours,
-  };
+  session?: Timesheet;
 }
 
 function normaliseEmployee(
@@ -174,10 +54,43 @@ function normaliseEmployee(
     return {
       uid: employee,
       name: "Unknown User",
+      email: "",
     };
   }
 
-  return employee;
+  return {
+    uid: employee.uid,
+    name: employee.name || "Unknown User",
+    email: employee.email || "",
+  };
+}
+
+function normaliseTimesheetDate(value: unknown): number {
+  if (!value) {
+    return 0;
+  }
+
+  if (
+    typeof value === "object" &&
+    value !== null &&
+    "toMillis" in value &&
+    typeof (value as { toMillis?: unknown }).toMillis === "function"
+  ) {
+    return (value as { toMillis: () => number }).toMillis();
+  }
+
+  if (
+    typeof value === "object" &&
+    value !== null &&
+    "toDate" in value &&
+    typeof (value as { toDate?: unknown }).toDate === "function"
+  ) {
+    return (value as { toDate: () => Date }).toDate().getTime();
+  }
+
+  const parsedDate = new Date(value as string | number | Date);
+
+  return Number.isNaN(parsedDate.getTime()) ? 0 : parsedDate.getTime();
 }
 
 function isUserAssigned(assignment: Assignment, userId: string): boolean {
@@ -209,88 +122,73 @@ function createInitialEmployeeProgress(
 function getEmployeeProgressList(
   assignment: Assignment,
 ): AssignmentEmployeeProgress[] {
-  const existingProgress = assignment.employeeProgress || [];
+  const existingProgress =
+    assignment.employeeProgress || createInitialEmployeeProgress(assignment);
 
   const assignedEmployees = assignment.assignedUsers.map(normaliseEmployee);
 
   return assignedEmployees.map((employee) => {
-    const progress = existingProgress.find(
+    const existingEmployeeProgress = existingProgress.find(
       (item) => item.userId === employee.uid,
     );
 
-    if (progress) {
+    if (!existingEmployeeProgress) {
       return {
-        ...progress,
-        userName: progress.userName || employee.name,
-        userEmail: progress.userEmail || employee.email || "",
-        totalMinutes: progress.totalMinutes || 0,
-        totalHours: progress.totalHours || 0,
-        sessionCount: progress.sessionCount || 0,
+        userId: employee.uid,
+        userName: employee.name,
+        userEmail: employee.email || "",
+
+        status: "assigned",
+
+        totalMinutes: 0,
+        totalHours: 0,
+        sessionCount: 0,
       };
     }
 
     return {
-      userId: employee.uid,
-      userName: employee.name,
-      userEmail: employee.email || "",
+      ...existingEmployeeProgress,
 
-      status: "assigned",
+      userName: existingEmployeeProgress.userName || employee.name,
 
-      totalMinutes: 0,
-      totalHours: 0,
-      sessionCount: 0,
+      userEmail: existingEmployeeProgress.userEmail || employee.email || "",
+
+      totalMinutes: existingEmployeeProgress.totalMinutes || 0,
+
+      totalHours: existingEmployeeProgress.totalHours || 0,
+
+      sessionCount: existingEmployeeProgress.sessionCount || 0,
     };
   });
 }
 
-function calculateOverallAssignmentStatus(
-  employeeProgress: AssignmentEmployeeProgress[],
-): AssignmentStatus {
-  if (employeeProgress.length === 0) {
-    return "assigned";
+function getCurrentEmployeeProgress(
+  assignment: Assignment,
+  userId: string,
+): AssignmentEmployeeProgress {
+  const employeeProgress = getEmployeeProgressList(assignment).find(
+    (item) => item.userId === userId,
+  );
+
+  if (!employeeProgress) {
+    throw new Error("Employee task progress was not found.");
   }
 
-  const statuses = employeeProgress.map((item) => item.status);
-
-  const allCompleted = statuses.every((status) => status === "completed");
-
-  if (allCompleted) {
-    return "completed";
-  }
-
-  const anyInProgress = statuses.some((status) => status === "in_progress");
-
-  if (anyInProgress) {
-    return "in_progress";
-  }
-
-  const anyPaused = statuses.some((status) => status === "paused");
-
-  if (anyPaused) {
-    return "paused";
-  }
-
-  const anyAccepted = statuses.some((status) => status === "accepted");
-
-  if (anyAccepted) {
-    return "accepted";
-  }
-
-  return "assigned";
+  return employeeProgress;
 }
 
 function updateEmployeeProgress(
-  progressList: AssignmentEmployeeProgress[],
+  employeeProgress: AssignmentEmployeeProgress[],
   user: TaskUser,
   updates: Partial<AssignmentEmployeeProgress>,
 ): AssignmentEmployeeProgress[] {
-  const existingProgress = progressList.find(
+  const existingProgress = employeeProgress.find(
     (item) => item.userId === user.uid,
   );
 
   if (!existingProgress) {
     return [
-      ...progressList,
+      ...employeeProgress,
       {
         userId: user.uid,
         userName: user.name,
@@ -307,12 +205,12 @@ function updateEmployeeProgress(
     ];
   }
 
-  return progressList.map((item) =>
+  return employeeProgress.map((item) =>
     item.userId === user.uid
       ? {
           ...item,
 
-          userName: user.name || item.userName,
+          userName: user.name || item.userName || "Unknown User",
 
           userEmail: user.email || item.userEmail || "",
 
@@ -322,12 +220,46 @@ function updateEmployeeProgress(
   );
 }
 
+function calculateOverallAssignmentStatus(
+  employeeProgress: AssignmentEmployeeProgress[],
+): AssignmentStatus {
+  if (employeeProgress.length === 0) {
+    return "assigned";
+  }
+
+  const statuses = employeeProgress.map((item) => item.status);
+
+  if (statuses.every((status) => status === "completed")) {
+    return "completed";
+  }
+
+  if (statuses.some((status) => status === "in_progress")) {
+    return "in_progress";
+  }
+
+  if (statuses.some((status) => status === "paused")) {
+    return "paused";
+  }
+
+  if (statuses.some((status) => status === "accepted")) {
+    return "accepted";
+  }
+
+  return "assigned";
+}
+
 async function getAssignmentOrThrow(assignmentId: string): Promise<Assignment> {
-  if (!assignmentId.trim()) {
+  const cleanedAssignmentId = assignmentId.trim();
+
+  if (!cleanedAssignmentId) {
     throw new Error("Assignment ID is required.");
   }
 
-  const assignmentReference = doc(db, ASSIGNMENTS_COLLECTION, assignmentId);
+  const assignmentReference = doc(
+    db,
+    ASSIGNMENTS_COLLECTION,
+    cleanedAssignmentId,
+  );
 
   const assignmentSnapshot = await getDoc(assignmentReference);
 
@@ -341,47 +273,14 @@ async function getAssignmentOrThrow(assignmentId: string): Promise<Assignment> {
   };
 }
 
-async function getUserSessions(userId: string): Promise<TaskWorkSession[]> {
-  const sessionsQuery = query(
-    collection(db, TIMESHEETS_COLLECTION),
-    where("userId", "==", userId),
-  );
-
-  const snapshot = await getDocs(sessionsQuery);
-
-  return snapshot.docs.map((sessionDocument) => ({
-    id: sessionDocument.id,
-    ...(sessionDocument.data() as Omit<TaskWorkSession, "id">),
-  }));
-}
-
-export async function getActiveTaskSession(
-  userId: string,
-): Promise<TaskWorkSession | null> {
-  if (!userId) {
-    return null;
+function validateUserAssignment(assignment: Assignment, user: TaskUser): void {
+  if (!user.uid.trim()) {
+    throw new Error("Authenticated user ID is required.");
   }
 
-  const sessions = await getUserSessions(userId);
-
-  return (
-    sessions.find(
-      (session) => session.status === "active" && !session.endTime,
-    ) || null
-  );
-}
-
-async function getActiveAssignmentSession(
-  assignmentId: string,
-  userId: string,
-): Promise<TaskWorkSession | null> {
-  const activeSession = await getActiveTaskSession(userId);
-
-  if (!activeSession || activeSession.assignmentId !== assignmentId) {
-    return null;
+  if (!isUserAssigned(assignment, user.uid)) {
+    throw new Error("This task has not been assigned to you.");
   }
-
-  return activeSession;
 }
 
 async function updateAssignmentProgress(
@@ -394,14 +293,20 @@ async function updateAssignmentProgress(
 
   const assignmentStatus = calculateOverallAssignmentStatus(employeeProgress);
 
+  const now = Timestamp.now();
+
   const updateData: Record<string, unknown> = {
     employeeProgress,
     status: assignmentStatus,
-    updatedAt: Timestamp.now(),
+    updatedAt: now,
   };
 
   if (assignmentStatus === "completed") {
-    updateData.completedAt = Timestamp.now();
+    updateData.completedAt = assignment.completedAt || now;
+  }
+
+  if (assignmentStatus !== "completed" && assignment.completedAt) {
+    updateData.completedAt = null;
   }
 
   await updateDoc(doc(db, ASSIGNMENTS_COLLECTION, assignment.id), updateData);
@@ -409,29 +314,61 @@ async function updateAssignmentProgress(
   return assignmentStatus;
 }
 
-function validateUserAssignment(assignment: Assignment, user: TaskUser): void {
-  if (!user.uid) {
-    throw new Error("Authenticated user ID is required.");
-  }
+async function getCompletedSessionTotals(
+  assignmentId: string,
+  userId: string,
+): Promise<{
+  totalMinutes: number;
+  totalHours: number;
+  sessionCount: number;
+}> {
+  const sessions = await getAssignmentTimesheets(assignmentId);
 
-  if (!isUserAssigned(assignment, user.uid)) {
-    throw new Error("This task has not been assigned to you.");
-  }
+  const employeeSessions = sessions.filter(
+    (session) => session.userId === userId,
+  );
+
+  const closedSessions = employeeSessions.filter(
+    (session) =>
+      session.status !== "active" &&
+      Boolean(session.endTime || session.checkOut),
+  );
+
+  const totalMinutes = closedSessions.reduce((sum, session) => {
+    if (typeof session.totalMinutes === "number") {
+      return sum + session.totalMinutes;
+    }
+
+    if (typeof session.totalHours === "number") {
+      return sum + Math.round(session.totalHours * 60);
+    }
+
+    return sum;
+  }, 0);
+
+  return {
+    totalMinutes,
+    totalHours: Number((totalMinutes / 60).toFixed(2)),
+    sessionCount: employeeSessions.length,
+  };
 }
 
-function getCurrentEmployeeProgress(
-  assignment: Assignment,
+async function getCreatedSession(
+  documentId: string,
+): Promise<Timesheet | undefined> {
+  const timesheet = await getTimesheetById(documentId);
+
+  return timesheet || undefined;
+}
+
+export async function getActiveTaskSession(
   userId: string,
-): AssignmentEmployeeProgress {
-  const progressList = getEmployeeProgressList(assignment);
-
-  const progress = progressList.find((item) => item.userId === userId);
-
-  if (!progress) {
-    throw new Error("Employee task progress was not found.");
+): Promise<Timesheet | null> {
+  if (!userId.trim()) {
+    return null;
   }
 
-  return progress;
+  return getActiveTimesheet(userId);
 }
 
 export async function acceptTask({
@@ -464,6 +401,20 @@ export async function acceptTask({
     employeeProgress,
   );
 
+  await logActivity({
+    assignmentId,
+    assignmentName: assignment.title,
+
+    userId: user.uid,
+    userName: user.name,
+
+    entityType: "assignment",
+    entityId: assignmentId,
+
+    action: "Accepted Task",
+    description: `${user.name} accepted the assignment "${assignment.title}".`,
+  });
+
   return {
     assignmentStatus,
     employeeStatus: "accepted",
@@ -473,6 +424,7 @@ export async function acceptTask({
 export async function startTask({
   assignmentId,
   user,
+  narration,
 }: TaskActionInput): Promise<TaskWorkflowResult> {
   const assignment = await getAssignmentOrThrow(assignmentId);
 
@@ -484,47 +436,34 @@ export async function startTask({
     throw new Error("Accept the task before starting work.");
   }
 
-  const existingActiveSession = await getActiveTaskSession(user.uid);
+  const existingActiveSession = await getActiveTimesheet(user.uid);
 
   if (existingActiveSession) {
     throw new Error(
-      `You are already working on "${existingActiveSession.assignmentName}". Pause or end that task before starting another one.`,
+      `You are already working on "${
+        existingActiveSession.assignmentName || "another task"
+      }". Pause or complete it before starting this task.`,
     );
   }
 
-  const now = Timestamp.now();
+  const sessionReference = await createAssignmentWorkSession({
+    userId: user.uid,
+    userName: user.name,
 
-  const sessionData: Omit<TaskWorkSession, "id"> = {
     assignmentId,
     assignmentName: assignment.title,
 
     clientId: assignment.clientId,
     clientName: assignment.clientName,
 
-    userId: user.uid,
-    userName: user.name,
-    userEmail: user.email || "",
+    narration: narration?.trim() || undefined,
 
-    date: getTodayDate(),
-
-    startTime: now,
-
-    totalMinutes: 0,
-    totalHours: 0,
-
-    status: "active",
     actionType: "start",
 
-    narration: "",
+    sessionNumber: (currentProgress.sessionCount || 0) + 1,
+  });
 
-    createdAt: now,
-    updatedAt: now,
-  };
-
-  const sessionReference = await addDoc(
-    collection(db, TIMESHEETS_COLLECTION),
-    sessionData,
-  );
+  const now = Timestamp.now();
 
   const employeeProgress = updateEmployeeProgress(
     getEmployeeProgressList(assignment),
@@ -545,14 +484,12 @@ export async function startTask({
     employeeProgress,
   );
 
+  const session = await getCreatedSession(sessionReference.id);
+
   return {
     assignmentStatus,
     employeeStatus: "in_progress",
-
-    session: {
-      id: sessionReference.id,
-      ...sessionData,
-    },
+    session,
   };
 }
 
@@ -577,36 +514,20 @@ export async function pauseTask({
     throw new Error("Only an active task can be paused.");
   }
 
-  const activeSession = await getActiveAssignmentSession(
-    assignmentId,
-    user.uid,
-  );
+  const activeSession = await getActiveTimesheet(user.uid);
 
-  if (!activeSession?.id) {
+  if (!activeSession?.id || activeSession.assignmentId !== assignmentId) {
     throw new Error("No active work session was found for this task.");
   }
 
-  const now = Timestamp.now();
-
-  const { totalMinutes, totalHours } = calculateSessionDuration(
-    activeSession.startTime,
-    now,
+  const closedSession = await pauseTimesheet(
+    activeSession.id,
+    cleanedNarration,
   );
 
-  await updateDoc(doc(db, TIMESHEETS_COLLECTION, activeSession.id), {
-    endTime: now,
+  const sessionTotals = await getCompletedSessionTotals(assignmentId, user.uid);
 
-    totalMinutes,
-    totalHours,
-
-    status: "paused",
-    narration: cleanedNarration,
-
-    updatedAt: now,
-  });
-
-  const employeeTotalMinutes =
-    (currentProgress.totalMinutes || 0) + totalMinutes;
+  const now = Timestamp.now();
 
   const employeeProgress = updateEmployeeProgress(
     getEmployeeProgressList(assignment),
@@ -618,9 +539,14 @@ export async function pauseTask({
 
       latestNarration: cleanedNarration,
 
-      totalMinutes: employeeTotalMinutes,
+      totalMinutes: sessionTotals.totalMinutes,
 
-      totalHours: Number((employeeTotalMinutes / 60).toFixed(2)),
+      totalHours: sessionTotals.totalHours,
+
+      sessionCount: Math.max(
+        currentProgress.sessionCount || 0,
+        sessionTotals.sessionCount,
+      ),
     },
   );
 
@@ -632,26 +558,14 @@ export async function pauseTask({
   return {
     assignmentStatus,
     employeeStatus: "paused",
-
-    session: {
-      ...activeSession,
-
-      endTime: now,
-
-      totalMinutes,
-      totalHours,
-
-      status: "paused",
-      narration: cleanedNarration,
-
-      updatedAt: now,
-    },
+    session: closedSession,
   };
 }
 
 export async function resumeTask({
   assignmentId,
   user,
+  narration,
 }: TaskActionInput): Promise<TaskWorkflowResult> {
   const assignment = await getAssignmentOrThrow(assignmentId);
 
@@ -663,47 +577,55 @@ export async function resumeTask({
     throw new Error("Only a paused task can be resumed.");
   }
 
-  const existingActiveSession = await getActiveTaskSession(user.uid);
+  const existingActiveSession = await getActiveTimesheet(user.uid);
 
   if (existingActiveSession) {
     throw new Error(
-      `You are already working on "${existingActiveSession.assignmentName}". Pause or end that task before resuming this one.`,
+      `You are already working on "${
+        existingActiveSession.assignmentName || "another task"
+      }". Pause or complete it before resuming this task.`,
     );
   }
 
-  const now = Timestamp.now();
+  const existingSessions = await getAssignmentTimesheets(assignmentId);
 
-  const sessionData: Omit<TaskWorkSession, "id"> = {
+  const employeeSessions = existingSessions.filter(
+    (session) => session.userId === user.uid,
+  );
+
+  const latestEmployeeSession = [...employeeSessions].sort(
+    (first, second) =>
+      normaliseTimesheetDate(
+        second.startTime || second.checkIn || second.createdAt,
+      ) -
+      normaliseTimesheetDate(
+        first.startTime || first.checkIn || first.createdAt,
+      ),
+  )[0];
+
+  const nextSessionNumber =
+    Math.max(currentProgress.sessionCount || 0, employeeSessions.length) + 1;
+
+  const sessionReference = await createAssignmentWorkSession({
+    userId: user.uid,
+    userName: user.name,
+
     assignmentId,
     assignmentName: assignment.title,
 
     clientId: assignment.clientId,
     clientName: assignment.clientName,
 
-    userId: user.uid,
-    userName: user.name,
-    userEmail: user.email || "",
+    narration: narration?.trim() || undefined,
 
-    date: getTodayDate(),
-
-    startTime: now,
-
-    totalMinutes: 0,
-    totalHours: 0,
-
-    status: "active",
     actionType: "resume",
 
-    narration: "",
+    sessionNumber: nextSessionNumber,
 
-    createdAt: now,
-    updatedAt: now,
-  };
+    resumedFromSession: latestEmployeeSession?.id,
+  });
 
-  const sessionReference = await addDoc(
-    collection(db, TIMESHEETS_COLLECTION),
-    sessionData,
-  );
+  const now = Timestamp.now();
 
   const employeeProgress = updateEmployeeProgress(
     getEmployeeProgressList(assignment),
@@ -713,7 +635,7 @@ export async function resumeTask({
 
       lastStartedAt: now,
 
-      sessionCount: (currentProgress.sessionCount || 0) + 1,
+      sessionCount: nextSessionNumber,
     },
   );
 
@@ -722,14 +644,12 @@ export async function resumeTask({
     employeeProgress,
   );
 
+  const session = await getCreatedSession(sessionReference.id);
+
   return {
     assignmentStatus,
     employeeStatus: "in_progress",
-
-    session: {
-      id: sessionReference.id,
-      ...sessionData,
-    },
+    session,
   };
 }
 
@@ -757,57 +677,35 @@ export async function endTask({
     throw new Error("Only an active or paused task can be completed.");
   }
 
-  const now = Timestamp.now();
-
-  let closedSession: TaskWorkSession | undefined;
-
-  let sessionMinutes = 0;
+  let closedSession: Timesheet | undefined;
 
   if (currentProgress.status === "in_progress") {
-    const activeSession = await getActiveAssignmentSession(
-      assignmentId,
-      user.uid,
-    );
+    const activeSession = await getActiveTimesheet(user.uid);
 
-    if (!activeSession?.id) {
+    if (!activeSession?.id || activeSession.assignmentId !== assignmentId) {
       throw new Error("No active work session was found for this task.");
     }
 
-    const duration = calculateSessionDuration(activeSession.startTime, now);
+    closedSession = await completeTimesheet(activeSession.id, cleanedNarration);
+  } else {
+    await logActivity({
+      assignmentId,
+      assignmentName: assignment.title,
 
-    sessionMinutes = duration.totalMinutes;
+      userId: user.uid,
+      userName: user.name,
 
-    await updateDoc(doc(db, TIMESHEETS_COLLECTION, activeSession.id), {
-      endTime: now,
+      entityType: "assignment",
+      entityId: assignmentId,
 
-      totalMinutes: duration.totalMinutes,
-
-      totalHours: duration.totalHours,
-
-      status: "completed",
-      narration: cleanedNarration,
-
-      updatedAt: now,
+      action: "Completed Task",
+      description: `${user.name} completed the paused assignment "${assignment.title}". Final narration: ${cleanedNarration}`,
     });
-
-    closedSession = {
-      ...activeSession,
-
-      endTime: now,
-
-      totalMinutes: duration.totalMinutes,
-
-      totalHours: duration.totalHours,
-
-      status: "completed",
-      narration: cleanedNarration,
-
-      updatedAt: now,
-    };
   }
 
-  const employeeTotalMinutes =
-    (currentProgress.totalMinutes || 0) + sessionMinutes;
+  const sessionTotals = await getCompletedSessionTotals(assignmentId, user.uid);
+
+  const now = Timestamp.now();
 
   const employeeProgress = updateEmployeeProgress(
     getEmployeeProgressList(assignment),
@@ -819,9 +717,14 @@ export async function endTask({
 
       latestNarration: cleanedNarration,
 
-      totalMinutes: employeeTotalMinutes,
+      totalMinutes: sessionTotals.totalMinutes,
 
-      totalHours: Number((employeeTotalMinutes / 60).toFixed(2)),
+      totalHours: sessionTotals.totalHours,
+
+      sessionCount: Math.max(
+        currentProgress.sessionCount || 0,
+        sessionTotals.sessionCount,
+      ),
     },
   );
 
@@ -841,31 +744,31 @@ export async function getEmployeeTaskProgress(
   assignmentId: string,
   userId: string,
 ): Promise<AssignmentEmployeeProgress | null> {
+  if (!userId.trim()) {
+    return null;
+  }
+
   const assignment = await getAssignmentOrThrow(assignmentId);
 
-  const progressList = getEmployeeProgressList(assignment);
-
-  return progressList.find((item) => item.userId === userId) || null;
+  return (
+    getEmployeeProgressList(assignment).find(
+      (item) => item.userId === userId,
+    ) || null
+  );
 }
 
 export async function getAssignmentWorkSessions(
   assignmentId: string,
-): Promise<TaskWorkSession[]> {
-  const sessionsQuery = query(
-    collection(db, TIMESHEETS_COLLECTION),
-    where("assignmentId", "==", assignmentId),
+): Promise<Timesheet[]> {
+  const sessions = await getAssignmentTimesheets(assignmentId);
+
+  return [...sessions].sort(
+    (first, second) =>
+      normaliseTimesheetDate(
+        second.startTime || second.checkIn || second.createdAt,
+      ) -
+      normaliseTimesheetDate(
+        first.startTime || first.checkIn || first.createdAt,
+      ),
   );
-
-  const snapshot = await getDocs(sessionsQuery);
-
-  return snapshot.docs
-    .map((sessionDocument) => ({
-      id: sessionDocument.id,
-      ...(sessionDocument.data() as Omit<TaskWorkSession, "id">),
-    }))
-    .sort(
-      (first, second) =>
-        timestampToMilliseconds(second.startTime) -
-        timestampToMilliseconds(first.startTime),
-    );
 }

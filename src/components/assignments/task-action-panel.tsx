@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   CirclePause,
   CirclePlay,
+  Clock3,
   Loader2,
   Play,
   Square,
@@ -104,11 +105,22 @@ function getCurrentEmployeeProgress(
   return {
     userId,
     userName: "",
+    userEmail: "",
+
     status: "assigned",
+
     totalMinutes: 0,
     totalHours: 0,
     sessionCount: 0,
   };
+}
+
+function getActionErrorMessage(actionError: unknown): string {
+  if (actionError instanceof Error) {
+    return actionError.message;
+  }
+
+  return "The task action could not be completed.";
 }
 
 export default function TaskActionPanel({
@@ -129,12 +141,17 @@ export default function TaskActionPanel({
 
   const [error, setError] = useState("");
 
+  const [localProcessing, setLocalProcessing] = useState(false);
+
+  const isProcessing = processing || localProcessing;
+
   const employeeProgress = useMemo(
     () => getCurrentEmployeeProgress(assignment, userId),
     [assignment, userId],
   );
 
-  const employeeStatus = employeeProgress?.status || "assigned";
+  const employeeStatus: EmployeeTaskStatus =
+    employeeProgress?.status || "assigned";
 
   const totalHours = Number(employeeProgress?.totalHours || 0);
 
@@ -147,32 +164,50 @@ export default function TaskActionPanel({
   );
 
   const resetNarration = () => {
+    if (isProcessing) {
+      return;
+    }
+
     setNarration("");
     setNarrationAction(null);
     setError("");
   };
 
+  const openNarrationPanel = (action: Exclude<NarrationAction, null>) => {
+    if (isProcessing) {
+      return;
+    }
+
+    setNarrationAction(action);
+    setNarration("");
+    setError("");
+  };
+
   const runSimpleAction = async (action: () => Promise<void>) => {
+    if (isProcessing) {
+      return;
+    }
+
     try {
       setError("");
+      setLocalProcessing(true);
+
       await action();
     } catch (actionError) {
       console.error("Task action failed:", actionError);
 
-      setError(
-        actionError instanceof Error
-          ? actionError.message
-          : "The task action could not be completed.",
-      );
+      setError(getActionErrorMessage(actionError));
+    } finally {
+      setLocalProcessing(false);
     }
   };
 
   const submitNarrationAction = async () => {
-    const cleanedNarration = narration.trim();
-
-    if (!narrationAction) {
+    if (!narrationAction || isProcessing) {
       return;
     }
+
+    const cleanedNarration = narration.trim();
 
     if (!cleanedNarration) {
       setError(
@@ -186,6 +221,7 @@ export default function TaskActionPanel({
 
     try {
       setError("");
+      setLocalProcessing(true);
 
       if (narrationAction === "pause") {
         await onPause(cleanedNarration);
@@ -193,15 +229,14 @@ export default function TaskActionPanel({
         await onEnd(cleanedNarration);
       }
 
-      resetNarration();
+      setNarration("");
+      setNarrationAction(null);
     } catch (actionError) {
       console.error("Narration action failed:", actionError);
 
-      setError(
-        actionError instanceof Error
-          ? actionError.message
-          : "The task action could not be completed.",
-      );
+      setError(getActionErrorMessage(actionError));
+    } finally {
+      setLocalProcessing(false);
     }
   };
 
@@ -210,6 +245,10 @@ export default function TaskActionPanel({
       <section className="rounded-3xl border border-amber-200 bg-amber-50 p-6 shadow-lg">
         <p className="font-semibold text-amber-800">
           Your user account could not be identified.
+        </p>
+
+        <p className="mt-1 text-sm text-amber-700">
+          Sign in again before trying to work on this assignment.
         </p>
       </section>
     );
@@ -262,9 +301,23 @@ export default function TaskActionPanel({
           </div>
 
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-            Accept the assigned task, start work, pause with narration, resume
-            later, or end the task with a final narration.
+            Accept the assigned task, start work, pause with a narration, resume
+            later, or complete the task with a final narration.
           </p>
+
+          {employeeStatus === "in_progress" && (
+            <div className="mt-3 inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700">
+              <Clock3 size={16} className="animate-pulse" />
+              Your work timer is currently running
+            </div>
+          )}
+
+          {employeeStatus === "paused" && (
+            <div className="mt-3 inline-flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-700">
+              <CirclePause size={16} />
+              Your timer is paused. Paused time is not recorded.
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-3 gap-3">
@@ -297,7 +350,7 @@ export default function TaskActionPanel({
       {employeeProgress?.latestNarration && (
         <div className="mt-5 rounded-2xl border border-sky-100 bg-sky-50/60 p-4">
           <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
-            Latest Narration
+            Latest narration
           </p>
 
           <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700">
@@ -310,32 +363,34 @@ export default function TaskActionPanel({
         {employeeStatus === "assigned" && (
           <Button
             type="button"
-            disabled={processing}
+            disabled={isProcessing}
             onClick={() => runSimpleAction(onAccept)}
             className="gap-2 rounded-xl bg-blue-600 hover:bg-blue-700"
           >
-            {processing ? (
+            {isProcessing ? (
               <Loader2 size={17} className="animate-spin" />
             ) : (
               <CheckCircle2 size={17} />
             )}
-            Accept Task
+
+            {isProcessing ? "Accepting..." : "Accept Task"}
           </Button>
         )}
 
         {employeeStatus === "accepted" && (
           <Button
             type="button"
-            disabled={processing}
+            disabled={isProcessing}
             onClick={() => runSimpleAction(onStart)}
             className="gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700"
           >
-            {processing ? (
+            {isProcessing ? (
               <Loader2 size={17} className="animate-spin" />
             ) : (
               <Play size={17} />
             )}
-            Start Task
+
+            {isProcessing ? "Starting..." : "Start Task"}
           </Button>
         )}
 
@@ -344,12 +399,8 @@ export default function TaskActionPanel({
             <Button
               type="button"
               variant="outline"
-              disabled={processing}
-              onClick={() => {
-                setNarrationAction("pause");
-                setNarration("");
-                setError("");
-              }}
+              disabled={isProcessing}
+              onClick={() => openNarrationPanel("pause")}
               className="gap-2 rounded-xl border-amber-200 text-amber-700 hover:bg-amber-50"
             >
               <CirclePause size={17} />
@@ -358,12 +409,8 @@ export default function TaskActionPanel({
 
             <Button
               type="button"
-              disabled={processing}
-              onClick={() => {
-                setNarrationAction("end");
-                setNarration("");
-                setError("");
-              }}
+              disabled={isProcessing}
+              onClick={() => openNarrationPanel("end")}
               className="gap-2 rounded-xl bg-rose-600 hover:bg-rose-700"
             >
               <Square size={16} />
@@ -376,27 +423,24 @@ export default function TaskActionPanel({
           <>
             <Button
               type="button"
-              disabled={processing}
+              disabled={isProcessing}
               onClick={() => runSimpleAction(onResume)}
               className="gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700"
             >
-              {processing ? (
+              {isProcessing ? (
                 <Loader2 size={17} className="animate-spin" />
               ) : (
                 <CirclePlay size={17} />
               )}
-              Resume Task
+
+              {isProcessing ? "Resuming..." : "Resume Task"}
             </Button>
 
             <Button
               type="button"
               variant="outline"
-              disabled={processing}
-              onClick={() => {
-                setNarrationAction("end");
-                setNarration("");
-                setError("");
-              }}
+              disabled={isProcessing}
+              onClick={() => openNarrationPanel("end")}
               className="gap-2 rounded-xl border-rose-200 text-rose-700 hover:bg-rose-50"
             >
               <Square size={16} />
@@ -447,7 +491,7 @@ export default function TaskActionPanel({
                   setError("");
                 }
               }}
-              disabled={processing}
+              disabled={isProcessing}
               placeholder={
                 narrationAction === "pause"
                   ? "Example: Completed bank reconciliation up to March. Waiting for client confirmation."
@@ -455,6 +499,14 @@ export default function TaskActionPanel({
               }
               className="mt-4 min-h-32 resize-y border-white bg-white/90"
             />
+
+            <div className="mt-2 flex items-center justify-between gap-3">
+              <p className="text-xs text-slate-400">Narration is mandatory</p>
+
+              <p className="text-xs text-slate-400">
+                {narration.trim().length} characters
+              </p>
+            </div>
 
             {error && (
               <p className="mt-3 text-sm font-medium text-red-600">{error}</p>
@@ -464,7 +516,7 @@ export default function TaskActionPanel({
               <Button
                 type="button"
                 variant="outline"
-                disabled={processing}
+                disabled={isProcessing}
                 onClick={resetNarration}
                 className="rounded-xl"
               >
@@ -473,7 +525,7 @@ export default function TaskActionPanel({
 
               <Button
                 type="button"
-                disabled={processing}
+                disabled={isProcessing || !narration.trim()}
                 onClick={submitNarrationAction}
                 className={`gap-2 rounded-xl ${
                   narrationAction === "pause"
@@ -481,7 +533,7 @@ export default function TaskActionPanel({
                     : "bg-rose-600 hover:bg-rose-700"
                 }`}
               >
-                {processing ? (
+                {isProcessing ? (
                   <Loader2 size={17} className="animate-spin" />
                 ) : narrationAction === "pause" ? (
                   <CirclePause size={17} />
@@ -489,7 +541,7 @@ export default function TaskActionPanel({
                   <Square size={16} />
                 )}
 
-                {processing
+                {isProcessing
                   ? "Processing..."
                   : narrationAction === "pause"
                     ? "Confirm Pause"
@@ -501,7 +553,9 @@ export default function TaskActionPanel({
       )}
 
       {!narrationAction && error && (
-        <p className="mt-4 text-sm font-medium text-red-600">{error}</p>
+        <p className="mt-4 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-medium text-red-600">
+          {error}
+        </p>
       )}
     </motion.section>
   );
