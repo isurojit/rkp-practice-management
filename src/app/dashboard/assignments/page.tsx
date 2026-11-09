@@ -190,8 +190,8 @@ export default function AssignmentsPage() {
         return false;
       }
 
-      if (onlyMyAssignments && user?.uid) {
-        const isAssignedToCurrentUser = assignment.assignedUsers.some(
+      if ((onlyMyAssignments || role === "employee") && user?.uid) {
+        const isAssignedToCurrentUser = (assignment.assignedUsers || []).some(
           (employee) => getAssignmentEmployeeId(employee) === user.uid,
         );
 
@@ -221,8 +221,7 @@ export default function AssignmentsPage() {
     });
   }, [assignments, onlyMyAssignments, searchTerm, statusFilter, user?.uid]);
 
-  const canCreateAssignment =
-    role === "super_admin" || role === "admin" || role === "manager";
+  const canCreateAssignment = role === "super_admin";
 
   const statusOptions: Array<{
     value: AssignmentFilter;
