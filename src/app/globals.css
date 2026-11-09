@@ -380,7 +380,7 @@
   [data-slot="dialog-content"] { padding: 20px; border-radius: 20px; }
 }
 
-/* Readability update: consistent larger typography across the RKP workspace. */
+/* RKP accessibility: bump the shared body scale without shrinking data density. */
 .rkp-app-shell { font-size: 16px; }
 .rkp-page { font-size: 15px; line-height: 1.65; }
 .rkp-page p, .rkp-page label { font-size: max(14px, 1em); }
