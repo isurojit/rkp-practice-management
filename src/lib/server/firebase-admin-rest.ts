@@ -358,3 +358,44 @@ export async function listUserTimeDocuments(userId: string): Promise<FireDocumen
   const result = (await response.json()) as Array<{ document?: FireDocument }>;
   return result.flatMap((entry) => entry.document ? [entry.document] : []);
 }
+
+/** Read a collection server-side; server routes must filter by verified caller role. */
+export async function listServerCollection(
+  collectionId: string,
+  maxDocuments = 10000,
+): Promise<FireDocument[]> {
+  const token = await getServerAccessToken();
+  const documents: FireDocument[] = [];
+  let nextPageToken = "";
+
+  do {
+    const query = new URLSearchParams({ pageSize: "200" });
+    if (nextPageToken) query.set("pageToken", nextPageToken);
+
+    const response = await fetch(
+      "https://firestore.googleapis.com/v1/projects/" +
+        encodeURIComponent(getProjectId()) + "/databases/(default)/documents/" +
+        encodeURIComponent(collectionId) + "?" + query.toString(),
+      {
+        headers: { Authorization: "Bearer " + token },
+        cache: "no-store",
+      },
+    );
+
+    if (!response.ok) throw new Error("Unable to retrieve firm records.");
+
+    const page = (await response.json()) as {
+      documents?: FireDocument[];
+      nextPageToken?: string;
+    };
+
+    documents.push(...(page.documents || []));
+    nextPageToken = page.nextPageToken || "";
+
+    if (documents.length >= maxDocuments && nextPageToken) {
+      throw new Error("Too many documents for an unpaginated view. Contact the administrator.");
+    }
+  } while (nextPageToken);
+
+  return documents;
+}
