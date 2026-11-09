@@ -297,3 +297,64 @@ export async function patchServerDoc(
     throw new Error("Unable to save Firebase record. Check server permissions.");
   }
 }
+
+/** Atomic multi-document commit with Firestore preconditions. */
+export async function commitServerWrites(writes: Record<string, unknown>[]): Promise<void> {
+  const token = await getServerAccessToken();
+  const url = "https://firestore.googleapis.com/v1/projects/" +
+    encodeURIComponent(getProjectId()) + "/databases/(default)/documents:commit";
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: "Bearer " + token,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ writes }),
+    cache: "no-store",
+  });
+
+  if (response.status === 409 || response.status === 412) {
+    throw new Error("This work record changed during your action. Refresh before trying again.");
+  }
+  if (!response.ok) {
+    throw new Error("Unable to save work record. Please retry; no partial changes were committed.");
+  }
+}
+
+export function getServerDocumentName(collection: string, id: string): string {
+  return "projects/" + getProjectId() + "/databases/(default)/documents/" +
+    collection + "/" + id;
+}
+
+export async function listUserTimeDocuments(userId: string): Promise<FireDocument[]> {
+  const token = await getServerAccessToken();
+  const response = await fetch(
+    "https://firestore.googleapis.com/v1/projects/" +
+      encodeURIComponent(getProjectId()) + "/databases/(default)/documents:runQuery",
+    {
+      method: "POST",
+      headers: {
+        Authorization: "Bearer " + token,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        structuredQuery: {
+          from: [{ collectionId: "timesheets" }],
+          where: {
+            fieldFilter: {
+              field: { fieldPath: "userId" },
+              op: "EQUAL",
+              value: { stringValue: userId },
+            },
+          },
+        },
+      }),
+      cache: "no-store",
+    },
+  );
+
+  if (!response.ok) throw new Error("Unable to inspect active work sessions.");
+  const result = (await response.json()) as Array<{ document?: FireDocument }>;
+  return result.flatMap((entry) => entry.document ? [entry.document] : []);
+}
