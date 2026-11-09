@@ -260,3 +260,40 @@ export async function getCallerRole(
   if (active && "booleanValue" in active && active.booleanValue === false) return null;
   return { uid, role: role.stringValue };
 }
+
+/** Patch named fields, protecting against concurrent assignment edits. */
+export async function patchServerDoc(
+  collection: string,
+  id: string,
+  values: Record<string, unknown>,
+  expectedUpdateTime?: string,
+): Promise<void> {
+  const token = await getServerAccessToken();
+  const parameters = new URLSearchParams();
+
+  for (const field of Object.keys(values)) {
+    parameters.append("updateMask.fieldPaths", field);
+  }
+
+  if (expectedUpdateTime) {
+    parameters.set("currentDocument.updateTime", expectedUpdateTime);
+  }
+
+  const response = await fetch(documentUrl(collection, id) + "?" + parameters.toString(), {
+    method: "PATCH",
+    headers: {
+      Authorization: "Bearer " + token,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ fields: toFirestoreFields(values) }),
+    cache: "no-store",
+  });
+
+  if (response.status === 409 || response.status === 412) {
+    throw new Error("This record was updated by someone else. Refresh and try again.");
+  }
+
+  if (!response.ok) {
+    throw new Error("Unable to save Firebase record. Check server permissions.");
+  }
+}
