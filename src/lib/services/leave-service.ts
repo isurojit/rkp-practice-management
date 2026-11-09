@@ -3,6 +3,8 @@ import {
   collection,
   doc,
   getDocs,
+  query,
+  where,
   updateDoc,
 } from "firebase/firestore";
 
@@ -16,8 +18,11 @@ export async function createLeaveRequest(data: Omit<LeaveRequest, "id">) {
   });
 }
 
-export async function getLeaveRequests(): Promise<LeaveRequest[]> {
-  const snapshot = await getDocs(collection(db, "leave_requests"));
+export async function getLeaveRequests(userId?: string): Promise<LeaveRequest[]> {
+  const target = userId
+    ? query(collection(db, "leave_requests"), where("userId", "==", userId))
+    : collection(db, "leave_requests");
+  const snapshot = await getDocs(target);
 
   return snapshot.docs.map((docItem) => ({
     id: docItem.id,
