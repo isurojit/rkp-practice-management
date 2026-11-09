@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 
 import { ArrowUpRight, BriefcaseBusiness, RefreshCw } from "lucide-react";
 
-import DashboardHeader from "@/components/dashboard/dashboard-header";
+
 import { getAssignmentHealth } from "@/lib/utils/assignment-health";
 import { getAssignmentsWithAnalytics } from "@/lib/services/assignment-analytics-service";
 import type { Assignment, AssignmentStatus } from "@/types/assignment";
@@ -56,9 +56,7 @@ export default function AssignmentBoardPage() {
 
   return (
     <>
-      <DashboardHeader />
-
-      <div className="min-h-screen space-y-6 bg-gradient-to-br from-sky-50 via-blue-50 to-cyan-50 p-6">
+      <div className="rkp-page min-h-screen space-y-6 bg-gradient-to-br from-sky-50 via-blue-50 to-cyan-50 p-6">
         <motion.div
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
