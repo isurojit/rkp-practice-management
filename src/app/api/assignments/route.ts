@@ -27,7 +27,17 @@ export async function GET(request: NextRequest) {
           : entry && typeof entry === "object" && "uid" in entry && entry.uid === caller.uid,
       );
 
-      return canView ? [{ ...data, id }] : [];
+      const visibleData = privileged ? data : {
+        ...data,
+        assignedUsers: assigned.filter((entry) =>
+          typeof entry === "string" ? entry === caller.uid :
+            entry && typeof entry === "object" && "uid" in entry && entry.uid === caller.uid,
+        ),
+        employeeProgress: (Array.isArray(data.employeeProgress) ? data.employeeProgress : []).filter((entry) =>
+          entry && typeof entry === "object" && "userId" in entry && entry.userId === caller.uid,
+        ),
+      };
+      return canView ? [{ ...visibleData, id }] : [];
     });
 
     return NextResponse.json({ assignments }, {
