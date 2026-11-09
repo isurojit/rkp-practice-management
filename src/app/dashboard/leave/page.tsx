@@ -26,9 +26,11 @@ export default function LeavePage() {
   useEffect(() => {
     async function loadLeaves() {
       try {
-        const data = await getLeaveRequests();
+        const data = await getLeaveRequests(
+          role === "super_admin" || role === "manager" ? undefined : user?.uid,
+        );
 
-        if (role === "super_admin") {
+        if (role === "super_admin" || role === "manager") {
           setRequests(data);
         } else {
           setRequests(data.filter((item) => item.userId === user?.uid));
