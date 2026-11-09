@@ -22,6 +22,7 @@ import AssignmentChecklist from "@/components/assignments/assignment-checklist";
 import AssignmentNotes from "@/components/assignments/assignment-notes";
 import AssignmentInstructions from "@/components/assignments/assignment-instructions";
 import TaskActionPanel from "@/components/assignments/task-action-panel";
+import ShareAssignmentDialog from "@/components/assignments/share-assignment-dialog";
 
 import { Button } from "@/components/ui/button";
 
@@ -760,7 +761,7 @@ export default function AssignmentDetailsPage({
   });
 
   const canAddInstruction =
-    role === "super_admin" || role === "admin" || role === "manager";
+    role === "super_admin" || role === "manager";
 
   const shouldShowTaskPanel = currentUserIsAssigned;
 
@@ -804,6 +805,11 @@ export default function AssignmentDetailsPage({
               </span>
             </div>
           </div>
+
+          <ShareAssignmentDialog
+            assignment={assignment}
+            onShared={() => void loadAssignmentData({ showRefreshLoader: true })}
+          />
 
           <Button
             type="button"
