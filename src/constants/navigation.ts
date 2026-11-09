@@ -50,7 +50,7 @@ export const navigation = [
     title: "Assignments",
     url: "/dashboard/assignments",
     icon: FolderKanban,
-    roles: ["super_admin", "manager"],
+    roles: ["super_admin", "manager", "employee"],
   },
   {
     title: "Assignment Board",
