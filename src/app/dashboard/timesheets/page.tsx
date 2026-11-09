@@ -15,7 +15,7 @@ import {
   TimerReset,
 } from "lucide-react";
 
-import DashboardHeader from "@/components/dashboard/dashboard-header";
+
 import StartWorkDialog from "@/components/timesheets/start-work-dialog";
 import ActiveSessionCard from "@/components/timesheets/active-session-card";
 import TimesheetHistoryTable from "@/components/timesheets/timesheet-history-table";
@@ -273,9 +273,7 @@ export default function TimesheetsPage() {
   if (authLoading || loading) {
     return (
       <>
-        <DashboardHeader />
-
-        <div className="min-h-screen bg-gradient-to-br from-sky-50 via-blue-50 to-cyan-50 p-6">
+        <div className="rkp-page min-h-screen bg-gradient-to-br from-sky-50 via-blue-50 to-cyan-50 p-6">
           <div className="flex min-h-[60vh] items-center justify-center">
             <div className="flex items-center rounded-3xl border border-sky-100 bg-white/75 px-8 py-6 text-slate-500 shadow-xl backdrop-blur-xl">
               <Loader2 className="mr-3 h-5 w-5 animate-spin" />
@@ -289,9 +287,7 @@ export default function TimesheetsPage() {
 
   return (
     <>
-      <DashboardHeader />
-
-      <div className="min-h-screen space-y-6 bg-gradient-to-br from-sky-50 via-blue-50 to-cyan-50 p-4 sm:p-6">
+      <div className="rkp-page min-h-screen space-y-6 bg-gradient-to-br from-sky-50 via-blue-50 to-cyan-50 p-4 sm:p-6">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <p className="text-sm font-semibold uppercase tracking-wide text-sky-700">
