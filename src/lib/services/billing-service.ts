@@ -11,16 +11,21 @@ export async function getClientBillingData(
   const q = query(
     collection(db, "timesheets"),
     where("clientId", "==", clientId),
-    where("status", "==", "stopped"),
-    where("billingStatus", "==", "unbilled"),
   );
 
   const snapshot = await getDocs(q);
 
-  let timesheets = snapshot.docs.map((docItem) => ({
-    id: docItem.id,
-    ...(docItem.data() as Omit<Timesheet, "id">),
-  }));
+  let timesheets = snapshot.docs
+    .map((docItem) => ({
+      id: docItem.id,
+      ...(docItem.data() as Omit<Timesheet, "id">),
+    }))
+    .filter((item) =>
+      item.workType === "assignment" &&
+      item.status !== "active" &&
+      Boolean(item.checkOut || item.endTime) &&
+      item.billingStatus !== "billed"
+    );
 
   if (fromDate) {
     timesheets = timesheets.filter((item) => item.date >= fromDate);
