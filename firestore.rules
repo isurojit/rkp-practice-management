@@ -1,0 +1,162 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function userPath() {
+      return /databases/$(database)/documents/users/$(request.auth.uid);
+    }
+
+    function hasActiveProfile() {
+      return signedIn()
+        && exists(userPath())
+        && get(userPath()).data.get('active', true) != false;
+    }
+
+    function role() {
+      return get(userPath()).data.get('role', 'employee');
+    }
+
+    function isSuperAdmin() {
+      return hasActiveProfile() && role() == 'super_admin';
+    }
+
+    function isManager() {
+      return hasActiveProfile() && role() == 'manager';
+    }
+
+    function isManagement() {
+      return isSuperAdmin() || isManager();
+    }
+
+    function assignedTo(assignmentId) {
+      return hasActiveProfile()
+        && exists(/databases/$(database)/documents/assignments/$(assignmentId))
+        && get(/databases/$(database)/documents/assignments/$(assignmentId))
+           .data.get('assignedUserIds', []).hasAny([request.auth.uid]);
+    }
+
+    match /users/{userId} {
+      allow get: if hasActiveProfile()
+        && (request.auth.uid == userId || isManagement());
+      allow list: if isManagement();
+      // User profiles and roles are provisioned only through the verified server.
+      allow create, update, delete: if false;
+    }
+
+    match /clients/{clientId} {
+      allow read: if isManagement();
+      allow create, update, delete: if false;
+    }
+
+    match /clientCodes/{clientCode} {
+      allow read, write: if false;
+    }
+
+    match /assignments/{assignmentId} {
+      allow get: if isManagement() || assignedTo(assignmentId);
+      allow list: if isManagement();
+      // Status, allocation and hours are server-authoritative.
+      allow create, update, delete: if false;
+    }
+
+    match /timesheets/{sessionId} {
+      allow read: if isManagement()
+        || (hasActiveProfile() && resource.data.userId == request.auth.uid);
+      allow create, delete: if false;
+
+      // Super Admin may mark closed sessions billed without changing any
+      // employee time, work narration or session-status fields.
+      allow update: if isSuperAdmin()
+        && resource.data.get('status', 'active') != 'active'
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['billingStatus', 'invoiceId', 'updatedAt'])
+        && request.resource.data.get('billingStatus', 'unbilled') == 'billed'
+        && request.resource.data.get('invoiceId', '') is string;
+    }
+
+    match /activeWorkSessions/{userId} {
+      allow read, write: if false;
+    }
+
+    match /workSessionEvents/{eventId} {
+      allow read: if isManagement()
+        || (hasActiveProfile() && resource.data.userId == request.auth.uid);
+      allow create, update, delete: if false;
+    }
+
+    match /assignment_checklists/{itemId} {
+      allow read: if isManagement() || assignedTo(resource.data.assignmentId);
+      allow create: if isManagement();
+      allow update: if (isManagement() || assignedTo(resource.data.assignmentId))
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['completed', 'completedAt', 'completedBy', 'completedByName']);
+      allow delete: if false;
+    }
+
+    match /assignment_notes/{noteId} {
+      allow read: if isManagement() || assignedTo(resource.data.assignmentId);
+      allow create: if hasActiveProfile()
+        && request.resource.data.createdBy == request.auth.uid
+        && (isManagement() || assignedTo(request.resource.data.assignmentId));
+      allow update, delete: if false;
+    }
+
+    match /assignment_instructions/{instructionId} {
+      allow read: if isManagement() || assignedTo(resource.data.assignmentId);
+      allow create: if isManagement()
+        && request.resource.data.createdBy == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    match /activity_logs/{eventId} {
+      allow read: if isManagement()
+        || (hasActiveProfile()
+          && resource.data.get('userId', '') == request.auth.uid);
+      // Instructions still create a supplementary activity item. Authoritative
+      // time entries are stored separately in immutable workSessionEvents.
+      allow create: if isManagement()
+        && request.resource.data.get('userId', '') == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    match /attendance/{attendanceId} {
+      allow read: if isManagement()
+        || (hasActiveProfile() && resource.data.userId == request.auth.uid);
+      allow create: if hasActiveProfile()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.get('status', '') == 'present';
+      allow update: if hasActiveProfile()
+        && resource.data.userId == request.auth.uid
+        && !('checkOut' in resource.data)
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['checkOut']);
+      allow delete: if false;
+    }
+
+    match /leave_requests/{leaveId} {
+      allow read: if isManagement()
+        || (hasActiveProfile() && resource.data.userId == request.auth.uid);
+      allow create: if hasActiveProfile()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.status == 'pending';
+      allow update: if isSuperAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['status'])
+        && request.resource.data.status in ['approved', 'rejected'];
+      allow delete: if false;
+    }
+
+    match /invoices/{invoiceId} {
+      allow read, create, update: if isSuperAdmin();
+      allow delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
