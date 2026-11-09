@@ -1,24 +1,11 @@
-import {
-  addDoc,
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  serverTimestamp,
-  updateDoc,
-} from "firebase/firestore";
-
-import { db } from "@/lib/firebase";
+import { auth } from "@/lib/firebase";
 
 import {
   Assignment,
   AssignmentEmployee,
   AssignmentEmployeeProgress,
-  AssignmentStatus,
 } from "@/types/assignment";
 
-import { createChecklistFromTemplate } from "@/lib/services/assignment-checklist-service";
-import { logActivity } from "@/lib/services/activity-service";
 
 function normaliseAssignedEmployee(
   employee: AssignmentEmployee | string,
@@ -35,26 +22,6 @@ function normaliseAssignedEmployee(
     name: employee.name || "Unknown User",
     email: employee.email || "",
   };
-}
-
-function createInitialEmployeeProgress(
-  assignedUsers: Array<AssignmentEmployee | string>,
-): AssignmentEmployeeProgress[] {
-  return assignedUsers.map((employee) => {
-    const normalisedEmployee = normaliseAssignedEmployee(employee);
-
-    return {
-      userId: normalisedEmployee.uid,
-      userName: normalisedEmployee.name,
-      userEmail: normalisedEmployee.email || "",
-
-      status: "assigned",
-
-      totalMinutes: 0,
-      totalHours: 0,
-      sessionCount: 0,
-    };
-  });
 }
 
 /**
@@ -106,11 +73,29 @@ function normaliseAssignmentRecord(
   };
 }
 
-export async function getAssignments(): Promise<Assignment[]> {
-  const snapshot = await getDocs(collection(db, "assignments"));
+async function authHeaders(): Promise<Record<string, string>> {
+  const currentUser = auth.currentUser;
+  if (!currentUser) throw new Error("Sign in to view assignment records.");
+  return { Authorization: "Bearer " + await currentUser.getIdToken() };
+}
 
-  return snapshot.docs.map((documentItem) =>
-    normaliseAssignmentRecord(documentItem.id, documentItem.data()),
+export async function getAssignments(): Promise<Assignment[]> {
+  const response = await fetch("/api/assignments", {
+    headers: await authHeaders(),
+    cache: "no-store",
+  });
+
+  const result = (await response.json()) as {
+    assignments?: Array<Record<string, unknown>>;
+    error?: string;
+  };
+
+  if (!response.ok) {
+    throw new Error(result.error || "Assignments could not be loaded.");
+  }
+
+  return (result.assignments || []).map((record) =>
+    normaliseAssignmentRecord(String(record.id || ""), record),
   );
 }
 
@@ -124,102 +109,50 @@ export async function createAssignment(
     | "updatedAt"
     | "completedAt"
   >,
-) {
-  if (!data.title.trim()) {
-    throw new Error("Assignment title is required.");
-  }
+): Promise<{ id: string }> {
+  const currentUser = auth.currentUser;
+  if (!currentUser) throw new Error("Sign in again to create an assignment.");
 
-  if (!data.clientId) {
-    throw new Error("A client must be selected.");
-  }
-
-  if (!data.assignedUsers || data.assignedUsers.length === 0) {
-    throw new Error("At least one employee must be assigned.");
-  }
-
-  const assignedUsers = data.assignedUsers.map(normaliseAssignedEmployee);
-
-  const employeeProgress = createInitialEmployeeProgress(assignedUsers);
-
-  const assignmentData = {
-    ...data,
-
-    assignedUsers,
-    employeeProgress,
-
-    status: "assigned" as AssignmentStatus,
-
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  };
-
-  const assignmentReference = await addDoc(
-    collection(db, "assignments"),
-    assignmentData,
-  );
-
-  await createChecklistFromTemplate(
-    assignmentReference.id,
-    data.assignmentType,
-  );
-
-  await logActivity({
-    assignmentId: assignmentReference.id,
-    assignmentName: data.title,
-
-    entityType: "assignment",
-    entityId: assignmentReference.id,
-
-    action: "Assignment Created",
-    description: `Assignment "${data.title}" was created for ${data.clientName} and assigned to ${assignedUsers.length} employee${
-      assignedUsers.length === 1 ? "" : "s"
-    }.`,
+  const token = await currentUser.getIdToken();
+  const response = await fetch("/api/admin/assignments", {
+    method: "POST",
+    headers: {
+      Authorization: "Bearer " + token,
+      "Content-Type": "application/json",
+    },
+    cache: "no-store",
+    body: JSON.stringify(data),
   });
 
-  return assignmentReference;
+  const result = (await response.json()) as { id?: string; error?: string };
+  if (!response.ok || !result.id) {
+    throw new Error(result.error || "Assignment could not be created.");
+  }
+  return { id: result.id };
 }
 
 export async function getAssignmentById(
   id: string,
 ): Promise<Assignment | null> {
-  if (!id.trim()) {
-    return null;
-  }
+  if (!id.trim()) return null;
 
-  const snapshot = await getDoc(doc(db, "assignments", id));
-
-  if (!snapshot.exists()) {
-    return null;
-  }
-
-  return normaliseAssignmentRecord(snapshot.id, snapshot.data());
-}
-
-export async function updateAssignmentStatus(
-  assignmentId: string,
-  status: AssignmentStatus,
-) {
-  const assignment = await getAssignmentById(assignmentId);
-
-  if (!assignment) {
-    throw new Error("Assignment was not found.");
-  }
-
-  await updateDoc(doc(db, "assignments", assignmentId), {
-    status,
-    updatedAt: serverTimestamp(),
+  const response = await fetch("/api/assignments/" + encodeURIComponent(id), {
+    headers: await authHeaders(),
+    cache: "no-store",
   });
 
-  await logActivity({
-    assignmentId,
-    assignmentName: assignment.title,
+  if (response.status === 404) return null;
 
-    entityType: "assignment",
-    entityId: assignmentId,
+  const result = (await response.json()) as {
+    assignment?: Record<string, unknown>;
+    error?: string;
+  };
 
-    action: "Status Updated",
-    description: `Assignment status changed to ${status
-      .replaceAll("_", " ")
-      .toUpperCase()}.`,
-  });
+  if (!response.ok) {
+    throw new Error(result.error || "Assignment could not be loaded.");
+  }
+
+  return result.assignment
+    ? normaliseAssignmentRecord(id, result.assignment)
+    : null;
 }
