@@ -111,7 +111,16 @@ export default function ActiveSessionCard({ session, onSessionEnded }: Props) {
     : extendedSession.clientName || "Assignment-based work session";
 
   const handleStopWork = async () => {
+    // Assignment sessions must use the task workflow.
     if (!isMiscellaneous) {
+      return;
+    }
+
+    // Validate the timesheet document ID.
+    const timesheetId = session.id;
+
+    if (!timesheetId) {
+      setError("Timesheet ID is missing. Unable to stop work.");
       return;
     }
 
@@ -119,8 +128,10 @@ export default function ActiveSessionCard({ session, onSessionEnded }: Props) {
       setStopping(true);
       setError(null);
 
-      await checkoutTimesheet(session.id, extendedSession.checkIn);
+      // The service retrieves the original check-in time.
+      await checkoutTimesheet(timesheetId);
 
+      // Refresh the parent timesheets page.
       onSessionEnded?.();
     } catch (error) {
       console.error("Failed to stop miscellaneous work:", error);

@@ -232,7 +232,6 @@ export default function TimesheetsPage() {
             break;
 
           case "completed":
-          case "stopped":
             result.completed += 1;
             break;
         }

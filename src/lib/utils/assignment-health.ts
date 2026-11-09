@@ -18,7 +18,7 @@ export function getAssignmentHealth({
 
   const estimatedHours = Number(assignment.estimatedHours || 0);
 
-  if (assignment.status === "completed" || assignment.status === "billed") {
+  if (assignment.status === "completed") {
     return {
       label: "Completed",
       color: "green",

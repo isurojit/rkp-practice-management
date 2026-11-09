@@ -121,21 +121,21 @@ export default function AddAssignmentDialog() {
   }, [users]);
 
   const selectedEmployees = useMemo<AssignmentEmployee[]>(() => {
-    return assignedUserIds
-      .map((uid) => {
-        const selectedUser = users.find((user) => user.uid === uid);
+    return assignedUserIds.flatMap((uid): AssignmentEmployee[] => {
+      const selectedUser = users.find((user) => user.uid === uid);
 
-        if (!selectedUser) {
-          return null;
-        }
+      if (!selectedUser) {
+        return [];
+      }
 
-        return {
+      return [
+        {
           uid: selectedUser.uid,
           name: selectedUser.name || selectedUser.email || "Unknown User",
           email: selectedUser.email || "",
-        };
-      })
-      .filter((employee): employee is AssignmentEmployee => employee !== null);
+        },
+      ];
+    });
   }, [assignedUserIds, users]);
 
   const resetForm = () => {
