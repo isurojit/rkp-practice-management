@@ -2,7 +2,7 @@
 
 import { use, useEffect, useMemo, useState } from "react";
 
-import DashboardHeader from "@/components/dashboard/dashboard-header";
+
 import TimesheetHistoryTable from "@/components/timesheets/timesheet-history-table";
 
 import { getUserById } from "@/lib/services/user-service";
@@ -50,9 +50,7 @@ export default function EmployeeDetailsPage({
 
   return (
     <>
-      <DashboardHeader />
-
-      <div className="min-h-screen bg-linear-to-br from-sky-50 via-blue-50 to-cyan-50 p-6 space-y-6">
+      <div className="rkp-page min-h-screen bg-linear-to-br from-sky-50 via-blue-50 to-cyan-50 p-6 space-y-6">
         <div>
           <h1 className="text-4xl font-black text-slate-800">
             {employee?.name || "Employee Work Record"}
