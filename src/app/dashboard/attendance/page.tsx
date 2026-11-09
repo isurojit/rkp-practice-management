@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 
 
 import { useAuth } from "@/providers/auth-provider";
+import { getIndiaDate } from "@/lib/utils/india-date";
 
 import {
   getAttendanceRecords,
@@ -31,9 +32,11 @@ export default function AttendancePage() {
         const today = await getTodayAttendance(user.uid);
         setTodayAttendance(today);
 
-        const allRecords = await getAttendanceRecords();
+        const allRecords = await getAttendanceRecords(
+          role === "super_admin" || role === "manager" ? undefined : user.uid,
+        );
 
-        if (role === "super_admin") {
+        if (role === "super_admin" || role === "manager") {
           setRecords(allRecords);
         } else {
           setRecords(allRecords.filter((item) => item.userId === user.uid));
@@ -54,7 +57,7 @@ export default function AttendancePage() {
     await markAttendanceIn({
       userId: user.uid,
       userName: user.displayName || user.email || "Unknown User",
-      date: new Date().toISOString().split("T")[0],
+      date: getIndiaDate(),
       checkIn: new Date().toISOString(),
       status: "present",
       locationType: "office",
