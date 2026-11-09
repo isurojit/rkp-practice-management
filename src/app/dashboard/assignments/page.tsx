@@ -14,7 +14,6 @@ import {
   UserCheck,
 } from "lucide-react";
 
-import DashboardHeader from "@/components/dashboard/dashboard-header";
 
 import AssignmentsTable from "@/components/assignments/assignments-table";
 import AddAssignmentDialog from "@/components/assignments/add-assignment-dialog";
@@ -264,9 +263,7 @@ export default function AssignmentsPage() {
 
   return (
     <>
-      <DashboardHeader />
-
-      <div className="min-h-screen space-y-6 bg-gradient-to-br from-sky-50 via-blue-50 to-cyan-50 p-4 sm:p-6">
+      <div className="rkp-page min-h-screen space-y-6 bg-gradient-to-br from-sky-50 via-blue-50 to-cyan-50 p-4 sm:p-6">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <p className="text-sm font-semibold uppercase tracking-wide text-sky-700">
