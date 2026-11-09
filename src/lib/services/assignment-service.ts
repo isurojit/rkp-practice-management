@@ -1,5 +1,4 @@
 import {
-  addDoc,
   collection,
   doc,
   getDoc,
@@ -8,7 +7,7 @@ import {
   updateDoc,
 } from "firebase/firestore";
 
-import { db } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
 
 import {
   Assignment,
@@ -17,8 +16,6 @@ import {
   AssignmentStatus,
 } from "@/types/assignment";
 
-import { createChecklistFromTemplate } from "@/lib/services/assignment-checklist-service";
-import { logActivity } from "@/lib/services/activity-service";
 
 function normaliseAssignedEmployee(
   employee: AssignmentEmployee | string,
@@ -124,59 +121,26 @@ export async function createAssignment(
     | "updatedAt"
     | "completedAt"
   >,
-) {
-  if (!data.title.trim()) {
-    throw new Error("Assignment title is required.");
-  }
+): Promise<{ id: string }> {
+  const currentUser = auth.currentUser;
+  if (!currentUser) throw new Error("Sign in again to create an assignment.");
 
-  if (!data.clientId) {
-    throw new Error("A client must be selected.");
-  }
-
-  if (!data.assignedUsers || data.assignedUsers.length === 0) {
-    throw new Error("At least one employee must be assigned.");
-  }
-
-  const assignedUsers = data.assignedUsers.map(normaliseAssignedEmployee);
-
-  const employeeProgress = createInitialEmployeeProgress(assignedUsers);
-
-  const assignmentData = {
-    ...data,
-
-    assignedUsers,
-    employeeProgress,
-
-    status: "assigned" as AssignmentStatus,
-
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  };
-
-  const assignmentReference = await addDoc(
-    collection(db, "assignments"),
-    assignmentData,
-  );
-
-  await createChecklistFromTemplate(
-    assignmentReference.id,
-    data.assignmentType,
-  );
-
-  await logActivity({
-    assignmentId: assignmentReference.id,
-    assignmentName: data.title,
-
-    entityType: "assignment",
-    entityId: assignmentReference.id,
-
-    action: "Assignment Created",
-    description: `Assignment "${data.title}" was created for ${data.clientName} and assigned to ${assignedUsers.length} employee${
-      assignedUsers.length === 1 ? "" : "s"
-    }.`,
+  const token = await currentUser.getIdToken();
+  const response = await fetch("/api/admin/assignments", {
+    method: "POST",
+    headers: {
+      Authorization: "Bearer " + token,
+      "Content-Type": "application/json",
+    },
+    cache: "no-store",
+    body: JSON.stringify(data),
   });
 
-  return assignmentReference;
+  const result = (await response.json()) as { id?: string; error?: string };
+  if (!response.ok || !result.id) {
+    throw new Error(result.error || "Assignment could not be created.");
+  }
+  return { id: result.id };
 }
 
 export async function getAssignmentById(
