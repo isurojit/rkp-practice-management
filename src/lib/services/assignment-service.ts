@@ -57,13 +57,61 @@ function createInitialEmployeeProgress(
   });
 }
 
+/**
+ * Historical assignments can have missing arrays or legacy string UIDs.
+ * Normalize on read so one incomplete record cannot crash the entire board.
+ */
+function normaliseAssignmentRecord(
+  id: string,
+  raw: Record<string, unknown>,
+): Assignment {
+  const assignedUsers = Array.isArray(raw.assignedUsers)
+    ? raw.assignedUsers
+        .filter((value) => typeof value === "string" || (value && typeof value === "object"))
+        .map((value) => normaliseAssignedEmployee(value as AssignmentEmployee | string))
+        .filter((employee) => Boolean(employee.uid))
+    : [];
+
+  const employeeProgress = Array.isArray(raw.employeeProgress)
+    ? raw.employeeProgress.filter((value): value is AssignmentEmployeeProgress =>
+        Boolean(value && typeof value === "object" && typeof value.userId === "string"),
+      )
+    : [];
+
+  return {
+    ...(raw as unknown as Assignment),
+    id,
+    title: typeof raw.title === "string" ? raw.title : "Untitled assignment",
+    clientId: typeof raw.clientId === "string" ? raw.clientId : "",
+    clientName: typeof raw.clientName === "string" ? raw.clientName : "Unknown client",
+    assignedUsers,
+    employeeProgress,
+    status:
+      raw.status === "accepted" || raw.status === "in_progress" ||
+      raw.status === "paused" || raw.status === "completed"
+        ? raw.status
+        : "assigned",
+    priority:
+      raw.priority === "urgent" || raw.priority === "high" || raw.priority === "low"
+        ? raw.priority
+        : "medium",
+    estimatedHours: Number.isFinite(Number(raw.estimatedHours))
+      ? Number(raw.estimatedHours)
+      : 0,
+    startDate: typeof raw.startDate === "string" ? raw.startDate : "",
+    dueDate: typeof raw.dueDate === "string" ? raw.dueDate : "",
+    assignmentType: typeof raw.assignmentType === "string"
+      ? (raw.assignmentType as Assignment["assignmentType"])
+      : "other",
+  };
+}
+
 export async function getAssignments(): Promise<Assignment[]> {
   const snapshot = await getDocs(collection(db, "assignments"));
 
-  return snapshot.docs.map((documentItem) => ({
-    id: documentItem.id,
-    ...(documentItem.data() as Omit<Assignment, "id">),
-  }));
+  return snapshot.docs.map((documentItem) =>
+    normaliseAssignmentRecord(documentItem.id, documentItem.data()),
+  );
 }
 
 export async function createAssignment(
@@ -144,10 +192,7 @@ export async function getAssignmentById(
     return null;
   }
 
-  return {
-    id: snapshot.id,
-    ...(snapshot.data() as Omit<Assignment, "id">),
-  };
+  return normaliseAssignmentRecord(snapshot.id, snapshot.data());
 }
 
 export async function updateAssignmentStatus(
