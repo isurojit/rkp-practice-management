@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 
 import {
@@ -123,6 +123,23 @@ function getActionErrorMessage(actionError: unknown): string {
   return "The task action could not be completed.";
 }
 
+function getStartedMilliseconds(value: unknown): number {
+  if (!value) return 0;
+  if (typeof value === "object" && value !== null && "toMillis" in value &&
+    typeof (value as { toMillis?: unknown }).toMillis === "function") {
+    return (value as { toMillis: () => number }).toMillis();
+  }
+  const date = new Date(value as string | number | Date);
+  return Number.isFinite(date.getTime()) ? date.getTime() : 0;
+}
+
+function formatRunningTime(seconds: number): string {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const remaining = seconds % 60;
+  return [hours, minutes, remaining].map((value) => String(value).padStart(2, "0")).join(":");
+}
+
 export default function TaskActionPanel({
   assignment,
   userId,
@@ -158,6 +175,23 @@ export default function TaskActionPanel({
   const totalMinutes = Number(employeeProgress?.totalMinutes || 0);
 
   const sessionCount = Number(employeeProgress?.sessionCount || 0);
+
+  const [runningSeconds, setRunningSeconds] = useState(0);
+  useEffect(() => {
+    if (employeeStatus !== "in_progress") {
+      setRunningSeconds(0);
+      return;
+    }
+
+    const started = getStartedMilliseconds(employeeProgress?.lastStartedAt);
+    if (!started) return;
+
+    const refresh = () => setRunningSeconds(Math.max(0, Math.floor((Date.now() - started) / 1000)));
+    refresh();
+    const interval = window.setInterval(refresh, 1000);
+    return () => window.clearInterval(interval);
+  }, [employeeStatus, employeeProgress?.lastStartedAt]);
+
 
   const isAssigned = (assignment.assignedUsers || []).some(
     (employee) => normaliseEmployeeId(employee) === userId,
@@ -301,21 +335,21 @@ export default function TaskActionPanel({
           </div>
 
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-            Accept the assigned task, start work, pause with a narration, resume
-            later, or complete the task with a final narration.
+            Start your assigned work, stop the timer with a narration, restart
+            later, or flag the task as completed. Each session is recorded separately.
           </p>
 
           {employeeStatus === "in_progress" && (
             <div className="mt-3 inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700">
               <Clock3 size={16} className="animate-pulse" />
-              Your work timer is currently running
+              Timer running · {formatRunningTime(runningSeconds)}
             </div>
           )}
 
           {employeeStatus === "paused" && (
             <div className="mt-3 inline-flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-700">
               <CirclePause size={16} />
-              Your timer is paused. Paused time is not recorded.
+              Timer stopped. Your recorded time is preserved; resume when ready.
             </div>
           )}
         </div>
@@ -364,7 +398,7 @@ export default function TaskActionPanel({
           <Button
             type="button"
             disabled={isProcessing}
-            onClick={() => runSimpleAction(onAccept)}
+            onClick={() => runSimpleAction(onStart)}
             className="gap-2 rounded-xl bg-blue-600 hover:bg-blue-700"
           >
             {isProcessing ? (
@@ -373,7 +407,7 @@ export default function TaskActionPanel({
               <CheckCircle2 size={17} />
             )}
 
-            {isProcessing ? "Accepting..." : "Accept Task"}
+            {isProcessing ? "Starting..." : "Start Timer"}
           </Button>
         )}
 
@@ -390,7 +424,7 @@ export default function TaskActionPanel({
               <Play size={17} />
             )}
 
-            {isProcessing ? "Starting..." : "Start Task"}
+            {isProcessing ? "Starting..." : "Start Timer"}
           </Button>
         )}
 
@@ -404,7 +438,7 @@ export default function TaskActionPanel({
               className="gap-2 rounded-xl border-amber-200 text-amber-700 hover:bg-amber-50"
             >
               <CirclePause size={17} />
-              Pause Task
+              Stop Timer
             </Button>
 
             <Button
@@ -414,7 +448,7 @@ export default function TaskActionPanel({
               className="gap-2 rounded-xl bg-rose-600 hover:bg-rose-700"
             >
               <Square size={16} />
-              End Task
+              Mark Task Complete
             </Button>
           </>
         )}
@@ -433,7 +467,7 @@ export default function TaskActionPanel({
                 <CirclePlay size={17} />
               )}
 
-              {isProcessing ? "Resuming..." : "Resume Task"}
+              {isProcessing ? "Restarting..." : "Restart Timer"}
             </Button>
 
             <Button
@@ -472,13 +506,13 @@ export default function TaskActionPanel({
           <div className="rounded-2xl border border-sky-100 bg-sky-50/60 p-4">
             <div>
               <h3 className="font-bold text-slate-800">
-                {narrationAction === "pause" ? "Pause Task" : "End Task"}
+                {narrationAction === "pause" ? "Stop Timer" : "Mark Task Complete"}
               </h3>
 
               <p className="mt-1 text-sm text-slate-500">
                 {narrationAction === "pause"
-                  ? "Describe the work completed so far and why the task is being paused."
-                  : "Enter the final narration describing the work completed."}
+                  ? "Record what work you completed in this session. Stopping will not mark the task complete."
+                  : "Describe the completed work. This flags your contribution as finished and stops any running timer."}
               </p>
             </div>
 
