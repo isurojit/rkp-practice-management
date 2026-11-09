@@ -9,10 +9,14 @@ import {
 } from "firebase/firestore";
 
 import { db } from "@/lib/firebase";
+import { getIndiaDate } from "@/lib/utils/india-date";
 import { Attendance } from "@/types/attendance";
 
-export async function getAttendanceRecords(): Promise<Attendance[]> {
-  const snapshot = await getDocs(collection(db, "attendance"));
+export async function getAttendanceRecords(userId?: string): Promise<Attendance[]> {
+  const target = userId
+    ? query(collection(db, "attendance"), where("userId", "==", userId))
+    : collection(db, "attendance");
+  const snapshot = await getDocs(target);
 
   return snapshot.docs.map((docItem) => ({
     id: docItem.id,
@@ -21,7 +25,7 @@ export async function getAttendanceRecords(): Promise<Attendance[]> {
 }
 
 export async function getTodayAttendance(userId: string) {
-  const today = new Date().toISOString().split("T")[0];
+  const today = getIndiaDate();
 
   const q = query(
     collection(db, "attendance"),

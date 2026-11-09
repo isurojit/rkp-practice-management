@@ -22,12 +22,13 @@ import AssignmentChecklist from "@/components/assignments/assignment-checklist";
 import AssignmentNotes from "@/components/assignments/assignment-notes";
 import AssignmentInstructions from "@/components/assignments/assignment-instructions";
 import TaskActionPanel from "@/components/assignments/task-action-panel";
+import ShareAssignmentDialog from "@/components/assignments/share-assignment-dialog";
 
 import { Button } from "@/components/ui/button";
 
 import { getAssignmentById } from "@/lib/services/assignment-service";
 
-import { getAssignmentTimesheets } from "@/lib/services/timesheet-service";
+import { getAssignmentTimesheets, getUserTimesheets } from "@/lib/services/timesheet-service";
 
 import { getAssignmentActivities } from "@/lib/services/activity-service";
 
@@ -318,8 +319,10 @@ export default function AssignmentDetailsPage({
           assignmentInstructions,
         ] = await Promise.all([
           getAssignmentById(id),
-          getAssignmentTimesheets(id),
-          getAssignmentActivities(id),
+          role === "employee" && user?.uid
+            ? getUserTimesheets(user.uid).then((records) => records.filter((item) => item.assignmentId === id))
+            : getAssignmentTimesheets(id),
+          getAssignmentActivities(id, role === "employee" ? user?.uid : undefined),
           getAssignmentChecklist(id),
           getAssignmentNotes(id),
           getAssignmentInstructions(id),
@@ -360,7 +363,7 @@ export default function AssignmentDetailsPage({
         }
       }
     },
-    [id],
+    [id, role, user?.uid],
   );
 
   useEffect(() => {
@@ -760,7 +763,7 @@ export default function AssignmentDetailsPage({
   });
 
   const canAddInstruction =
-    role === "super_admin" || role === "admin" || role === "manager";
+    role === "super_admin" || role === "manager";
 
   const shouldShowTaskPanel = currentUserIsAssigned;
 
@@ -804,6 +807,11 @@ export default function AssignmentDetailsPage({
               </span>
             </div>
           </div>
+
+          <ShareAssignmentDialog
+            assignment={assignment}
+            onShared={() => void loadAssignmentData({ showRefreshLoader: true })}
+          />
 
           <Button
             type="button"

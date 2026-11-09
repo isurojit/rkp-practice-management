@@ -29,7 +29,7 @@ import { Button } from "@/components/ui/button";
 
 import { getDashboardStats } from "@/lib/services/dashboard-service";
 
-import { getActiveTimesheets } from "@/lib/services/timesheet-service";
+import { getActiveTimesheets, getUserTimesheets } from "@/lib/services/timesheet-service";
 
 import { getAssignments } from "@/lib/services/assignment-service";
 
@@ -210,7 +210,7 @@ export default function DashboardPage() {
   const [message, setMessage] = useState<DashboardMessage | null>(null);
 
   const isManagement =
-    role === "super_admin" || role === "admin" || role === "manager";
+    role === "super_admin" || role === "manager";
 
   const loadDashboard = useCallback(
     async ({
@@ -235,7 +235,7 @@ export default function DashboardPage() {
           await Promise.all([
             isManagement ? getDashboardStats() : Promise.resolve(null),
 
-            getActiveTimesheets(),
+            isManagement ? getActiveTimesheets() : user?.uid ? getUserTimesheets(user.uid) : Promise.resolve([]),
 
             getAssignments(),
           ]);
@@ -272,7 +272,7 @@ export default function DashboardPage() {
         }
       }
     },
-    [isManagement],
+    [isManagement, user?.uid],
   );
 
   useEffect(() => {
@@ -291,7 +291,7 @@ export default function DashboardPage() {
     }
 
     return assignments.filter((assignment) =>
-      assignment.assignedUsers.some(
+      (assignment.assignedUsers || []).some(
         (employee) => getAssignedEmployeeId(employee) === user.uid,
       ),
     );
