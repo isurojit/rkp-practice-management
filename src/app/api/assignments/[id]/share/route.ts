@@ -89,6 +89,7 @@ export async function POST(
 
     await patchServerDoc("assignments", id, {
       assignedUsers,
+      assignedUserIds: assignedUsers.map((entry) => entry.uid),
       employeeProgress: nextProgress,
       updatedAt: new Date(),
       lastSharedBy: caller.uid,
