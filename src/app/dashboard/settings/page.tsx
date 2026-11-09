@@ -4,7 +4,7 @@ import { Settings2 } from "lucide-react";
 
 export default function SettingsPage() {
   return (
-    <div className="min-h-screen bg-slate-50 p-6 md:p-8">
+    <div className="rkp-page min-h-screen bg-slate-50 p-6 md:p-8">
       <div className="rounded-3xl border border-sky-100 bg-white p-8 shadow-sm">
         <div className="flex items-center gap-3">
           <div className="rounded-2xl bg-sky-100 p-3 text-sky-700">
