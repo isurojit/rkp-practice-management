@@ -211,7 +211,6 @@ function getSessionStatusClasses(status: Timesheet["status"]): string {
       return "border-amber-200 bg-amber-50 text-amber-700";
 
     case "completed":
-    case "stopped":
       return "border-violet-200 bg-violet-50 text-violet-700";
 
     default:
