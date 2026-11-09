@@ -1,5 +1,5 @@
 import ProtectedRoute from "@/components/dashboard/protected-route";
-import AppSidebar from "@/components/dashboard/app-sidebar";
+import DashboardShell from "@/components/dashboard/dashboard-shell";
 
 export default function DashboardLayout({
   children,
@@ -8,11 +8,7 @@ export default function DashboardLayout({
 }) {
   return (
     <ProtectedRoute>
-      <div className="flex min-h-screen">
-        <AppSidebar />
-
-        <main className="flex-1 overflow-auto">{children}</main>
-      </div>
+      <DashboardShell>{children}</DashboardShell>
     </ProtectedRoute>
   );
 }
