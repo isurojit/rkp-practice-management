@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 
-import DashboardHeader from "@/components/dashboard/dashboard-header";
 
 import ClientsTable from "@/components/clients/clients-table";
 import AddClientDialog from "@/components/clients/add-client-dialog";
@@ -33,9 +32,7 @@ export default function ClientsPage() {
 
   return (
     <>
-      <DashboardHeader />
-
-      <div className="p-6">
+      <div className="rkp-page p-6">
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-3xl font-bold">Clients</h1>
