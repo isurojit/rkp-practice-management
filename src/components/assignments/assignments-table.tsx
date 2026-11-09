@@ -67,7 +67,7 @@ function getStatusIcon(status: string) {
 }
 
 function getAssignedEmployeeCount(assignment: Assignment) {
-  return assignment.assignedUsers.length;
+  return (assignment.assignedUsers || []).length;
 }
 
 function getCompletedEmployees(assignment: Assignment) {
