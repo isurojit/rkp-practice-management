@@ -94,7 +94,7 @@ function normaliseTimesheetDate(value: unknown): number {
 }
 
 function isUserAssigned(assignment: Assignment, userId: string): boolean {
-  return assignment.assignedUsers.some(
+  return (assignment.assignedUsers || []).some(
     (employee) => normaliseEmployee(employee).uid === userId,
   );
 }
@@ -102,7 +102,7 @@ function isUserAssigned(assignment: Assignment, userId: string): boolean {
 function createInitialEmployeeProgress(
   assignment: Assignment,
 ): AssignmentEmployeeProgress[] {
-  return assignment.assignedUsers.map((employee) => {
+  return (assignment.assignedUsers || []).map((employee) => {
     const normalisedEmployee = normaliseEmployee(employee);
 
     return {
@@ -123,9 +123,9 @@ function getEmployeeProgressList(
   assignment: Assignment,
 ): AssignmentEmployeeProgress[] {
   const existingProgress =
-    assignment.employeeProgress || createInitialEmployeeProgress(assignment);
+    (Array.isArray(assignment.employeeProgress) ? assignment.employeeProgress : null) || createInitialEmployeeProgress(assignment);
 
-  const assignedEmployees = assignment.assignedUsers.map(normaliseEmployee);
+  const assignedEmployees = (assignment.assignedUsers || []).map(normaliseEmployee);
 
   return assignedEmployees.map((employee) => {
     const existingEmployeeProgress = existingProgress.find(
