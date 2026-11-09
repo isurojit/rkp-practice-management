@@ -51,7 +51,7 @@ function normaliseEmployeeId(
     return employee;
   }
 
-  return employee.uid || "";
+  return employee?.uid || "";
 }
 
 function formatStatus(status: EmployeeTaskStatus): string {
@@ -94,7 +94,7 @@ function getCurrentEmployeeProgress(
     return existingProgress;
   }
 
-  const isAssigned = assignment.assignedUsers.some(
+  const isAssigned = (assignment.assignedUsers || []).some(
     (employee) => normaliseEmployeeId(employee) === userId,
   );
 
@@ -159,7 +159,7 @@ export default function TaskActionPanel({
 
   const sessionCount = Number(employeeProgress?.sessionCount || 0);
 
-  const isAssigned = assignment.assignedUsers.some(
+  const isAssigned = (assignment.assignedUsers || []).some(
     (employee) => normaliseEmployeeId(employee) === userId,
   );
 
