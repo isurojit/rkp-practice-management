@@ -1,11 +1,4 @@
-import {
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-} from "firebase/firestore";
-
-import { auth, db } from "@/lib/firebase";
+import { auth } from "@/lib/firebase";
 
 import {
   Assignment,
@@ -80,11 +73,29 @@ function normaliseAssignmentRecord(
   };
 }
 
-export async function getAssignments(): Promise<Assignment[]> {
-  const snapshot = await getDocs(collection(db, "assignments"));
+async function authHeaders(): Promise<Record<string, string>> {
+  const currentUser = auth.currentUser;
+  if (!currentUser) throw new Error("Sign in to view assignment records.");
+  return { Authorization: "Bearer " + await currentUser.getIdToken() };
+}
 
-  return snapshot.docs.map((documentItem) =>
-    normaliseAssignmentRecord(documentItem.id, documentItem.data()),
+export async function getAssignments(): Promise<Assignment[]> {
+  const response = await fetch("/api/assignments", {
+    headers: await authHeaders(),
+    cache: "no-store",
+  });
+
+  const result = (await response.json()) as {
+    assignments?: Array<Record<string, unknown>>;
+    error?: string;
+  };
+
+  if (!response.ok) {
+    throw new Error(result.error || "Assignments could not be loaded.");
+  }
+
+  return (result.assignments || []).map((record) =>
+    normaliseAssignmentRecord(String(record.id || ""), record),
   );
 }
 
@@ -123,16 +134,25 @@ export async function createAssignment(
 export async function getAssignmentById(
   id: string,
 ): Promise<Assignment | null> {
-  if (!id.trim()) {
-    return null;
+  if (!id.trim()) return null;
+
+  const response = await fetch("/api/assignments/" + encodeURIComponent(id), {
+    headers: await authHeaders(),
+    cache: "no-store",
+  });
+
+  if (response.status === 404) return null;
+
+  const result = (await response.json()) as {
+    assignment?: Record<string, unknown>;
+    error?: string;
+  };
+
+  if (!response.ok) {
+    throw new Error(result.error || "Assignment could not be loaded.");
   }
 
-  const snapshot = await getDoc(doc(db, "assignments", id));
-
-  if (!snapshot.exists()) {
-    return null;
-  }
-
-  return normaliseAssignmentRecord(snapshot.id, snapshot.data());
+  return result.assignment
+    ? normaliseAssignmentRecord(id, result.assignment)
+    : null;
 }
-
