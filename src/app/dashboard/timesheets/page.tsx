@@ -16,7 +16,8 @@ import {
 } from "lucide-react";
 
 
-import StartWorkDialog from "@/components/timesheets/start-work-dialog";
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import ActiveSessionCard from "@/components/timesheets/active-session-card";
 import TimesheetHistoryTable from "@/components/timesheets/timesheet-history-table";
 
@@ -92,7 +93,7 @@ export default function TimesheetsPage() {
   const [message, setMessage] = useState<PageMessage | null>(null);
 
   const canViewAllTimesheets =
-    role === "super_admin" || role === "admin" || role === "manager";
+    role === "super_admin" || role === "manager";
 
   const loadTimesheetData = useCallback(
     async ({
@@ -326,7 +327,12 @@ export default function TimesheetsPage() {
               {refreshing ? "Refreshing..." : "Refresh"}
             </Button>
 
-            <StartWorkDialog onWorkStarted={() => void loadTimesheetData()} />
+            <Link
+              href="/dashboard/assignments"
+              className="inline-flex h-10 items-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white transition hover:bg-blue-700"
+            >
+              Open assigned tasks <ArrowRight size={16} />
+            </Link>
           </div>
         </div>
 
