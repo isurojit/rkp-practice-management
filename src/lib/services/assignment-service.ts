@@ -3,8 +3,6 @@ import {
   doc,
   getDoc,
   getDocs,
-  serverTimestamp,
-  updateDoc,
 } from "firebase/firestore";
 
 import { auth, db } from "@/lib/firebase";
@@ -13,7 +11,6 @@ import {
   Assignment,
   AssignmentEmployee,
   AssignmentEmployeeProgress,
-  AssignmentStatus,
 } from "@/types/assignment";
 
 
@@ -32,26 +29,6 @@ function normaliseAssignedEmployee(
     name: employee.name || "Unknown User",
     email: employee.email || "",
   };
-}
-
-function createInitialEmployeeProgress(
-  assignedUsers: Array<AssignmentEmployee | string>,
-): AssignmentEmployeeProgress[] {
-  return assignedUsers.map((employee) => {
-    const normalisedEmployee = normaliseAssignedEmployee(employee);
-
-    return {
-      userId: normalisedEmployee.uid,
-      userName: normalisedEmployee.name,
-      userEmail: normalisedEmployee.email || "",
-
-      status: "assigned",
-
-      totalMinutes: 0,
-      totalHours: 0,
-      sessionCount: 0,
-    };
-  });
 }
 
 /**
@@ -159,31 +136,3 @@ export async function getAssignmentById(
   return normaliseAssignmentRecord(snapshot.id, snapshot.data());
 }
 
-export async function updateAssignmentStatus(
-  assignmentId: string,
-  status: AssignmentStatus,
-) {
-  const assignment = await getAssignmentById(assignmentId);
-
-  if (!assignment) {
-    throw new Error("Assignment was not found.");
-  }
-
-  await updateDoc(doc(db, "assignments", assignmentId), {
-    status,
-    updatedAt: serverTimestamp(),
-  });
-
-  await logActivity({
-    assignmentId,
-    assignmentName: assignment.title,
-
-    entityType: "assignment",
-    entityId: assignmentId,
-
-    action: "Status Updated",
-    description: `Assignment status changed to ${status
-      .replaceAll("_", " ")
-      .toUpperCase()}.`,
-  });
-}
