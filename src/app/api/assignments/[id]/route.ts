@@ -38,7 +38,18 @@ export async function GET(
       return NextResponse.json({ error: "This assignment is not allocated to you." }, { status: 403 });
     }
 
-    return NextResponse.json({ assignment: { ...data, id } }, {
+    const visibleData = privileged ? data : {
+      ...data,
+      assignedUsers: assignedUsers.filter((entry) =>
+        typeof entry === "string" ? entry === caller.uid :
+          entry && typeof entry === "object" && "uid" in entry && entry.uid === caller.uid,
+      ),
+      employeeProgress: (Array.isArray(data.employeeProgress) ? data.employeeProgress : []).filter((entry) =>
+        entry && typeof entry === "object" && "userId" in entry && entry.userId === caller.uid,
+      ),
+    };
+
+    return NextResponse.json({ assignment: { ...visibleData, id } }, {
       headers: { "Cache-Control": "no-store" },
     });
   } catch (error) {
