@@ -379,3 +379,18 @@
 @media (max-width: 640px) {
   [data-slot="dialog-content"] { padding: 20px; border-radius: 20px; }
 }
+
+/* RKP accessibility: bump the shared body scale without shrinking data density. */
+.rkp-app-shell { font-size: 16px; }
+.rkp-page { font-size: 15px; line-height: 1.65; }
+.rkp-page p, .rkp-page label { font-size: max(14px, 1em); }
+.rkp-page button, .rkp-page input, .rkp-page textarea, .rkp-page select { font-size: 14px; }
+.rkp-page table { font-size: 14px; }
+.rkp-page table th { font-size: 12px; }
+.rkp-page table td { font-size: 14px; }
+.rkp-sidebar nav a { font-size: 14px; }
+.rkp-topbar { font-size: 14px; }
+@media (min-width: 768px) {
+  .rkp-page { font-size: 16px; }
+  .rkp-page button, .rkp-page input, .rkp-page textarea, .rkp-page select { font-size: 15px; }
+}
