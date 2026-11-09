@@ -28,7 +28,7 @@ import { Button } from "@/components/ui/button";
 
 import { getAssignmentById } from "@/lib/services/assignment-service";
 
-import { getAssignmentTimesheets } from "@/lib/services/timesheet-service";
+import { getAssignmentTimesheets, getUserTimesheets } from "@/lib/services/timesheet-service";
 
 import { getAssignmentActivities } from "@/lib/services/activity-service";
 
@@ -319,8 +319,10 @@ export default function AssignmentDetailsPage({
           assignmentInstructions,
         ] = await Promise.all([
           getAssignmentById(id),
-          getAssignmentTimesheets(id),
-          getAssignmentActivities(id),
+          role === "employee" && user?.uid
+            ? getUserTimesheets(user.uid).then((records) => records.filter((item) => item.assignmentId === id))
+            : getAssignmentTimesheets(id),
+          getAssignmentActivities(id, role === "employee" ? user?.uid : undefined),
           getAssignmentChecklist(id),
           getAssignmentNotes(id),
           getAssignmentInstructions(id),
@@ -361,7 +363,7 @@ export default function AssignmentDetailsPage({
         }
       }
     },
-    [id],
+    [id, role, user?.uid],
   );
 
   useEffect(() => {
