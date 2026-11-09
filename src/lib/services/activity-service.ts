@@ -12,18 +12,19 @@ export async function logActivity(data: ActivityLog) {
 
 export async function getAssignmentActivities(
   assignmentId: string,
+  userId?: string,
 ): Promise<ActivityLog[]> {
-  const q = query(
-    collection(db, "activity_logs"),
-    where("assignmentId", "==", assignmentId),
-  );
+  const q = userId
+    ? query(collection(db, "activity_logs"), where("userId", "==", userId))
+    : query(collection(db, "activity_logs"), where("assignmentId", "==", assignmentId));
 
   const snapshot = await getDocs(q);
-
-  return snapshot.docs.map((docItem) => ({
-    id: docItem.id,
-    ...(docItem.data() as Omit<ActivityLog, "id">),
-  }));
+  return snapshot.docs
+    .map((document) => ({
+      id: document.id,
+      ...(document.data() as Omit<ActivityLog, "id">),
+    }))
+    .filter((entry) => entry.assignmentId === assignmentId);
 }
 
 export async function getAllActivities(): Promise<ActivityLog[]> {
