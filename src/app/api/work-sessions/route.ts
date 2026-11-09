@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
+import { getIndiaDate } from "@/lib/utils/india-date";
 
 import {
   commitServerWrites,
@@ -223,12 +224,7 @@ export async function POST(request: NextRequest) {
       responseSessionId = sessionId;
       const sessionCount = Number(previous.sessionCount || 0) + 1;
 
-      const indiaDate = new Intl.DateTimeFormat("en-CA", {
-        timeZone: "Asia/Kolkata",
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-      }).format(now);
+      const indiaDate = getIndiaDate(now);
 
       writes.push(createFields("timesheets", sessionId, {
         userId: caller.uid,
@@ -289,6 +285,9 @@ export async function POST(request: NextRequest) {
       }
 
       const active = activeDoc ? fromFirestoreFields(activeDoc.fields) : null;
+      if (action === "complete" && !["in_progress", "paused"].includes(previous.status)) {
+        return errorJson("Only started or stopped tasks may be marked completed.", 409);
+      }
       if (!active && action === "stop") return errorJson("No active timer exists for this task.", 409);
 
       let durationSeconds = 0;
