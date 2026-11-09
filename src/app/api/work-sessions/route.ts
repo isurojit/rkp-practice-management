@@ -15,7 +15,7 @@ import {
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-type Action = "start" | "stop" | "complete";
+type Action = "accept" | "start" | "stop" | "complete";
 type TaskStatus = "assigned" | "accepted" | "in_progress" | "paused" | "completed";
 type Progress = {
   userId: string;
@@ -156,7 +156,7 @@ export async function POST(request: NextRequest) {
     const id = typeof payload.assignmentId === "string" ? payload.assignmentId.trim() : "";
     const narration = typeof payload.narration === "string" ? payload.narration.trim() : "";
 
-    if (action !== "start" && action !== "stop" && action !== "complete") {
+    if (action !== "accept" && action !== "start" && action !== "stop" && action !== "complete") {
       return errorJson("Invalid work action.", 400);
     }
     if (!id || id.length > 300 || id.includes("/")) return errorJson("Invalid assignment ID.", 400);
@@ -197,7 +197,19 @@ export async function POST(request: NextRequest) {
     let nextStatus: TaskStatus;
     let responseSessionId: string | undefined;
 
-    if (action === "start") {
+    if (action === "accept") {
+      if (previous.status !== "assigned") {
+        return errorJson("This task has already been accepted or started.", 409);
+      }
+      nextStatus = "accepted";
+      list[position] = {
+        ...previous,
+        userName,
+        userEmail,
+        status: nextStatus,
+        acceptedAt: now,
+      };
+    } else if (action === "start") {
       if (previous.status === "completed") return errorJson("This task is already marked completed.", 409);
       if (lock) return errorJson("You already have a running work timer. Stop it before switching tasks.", 409);
 
