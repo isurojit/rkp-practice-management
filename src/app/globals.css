@@ -55,10 +55,10 @@
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: #0f172a;
+  --primary: #285cce;
   --primary-foreground: #ffffff;
-  --secondary: #1e293b;
-  --secondary-foreground: #ffffff;
+  --secondary: #eff3fc;
+  --secondary-foreground: #17365d;
   --muted: #f8fafc;
   --muted-foreground: oklch(0.556 0 0);
   --accent: #2563eb;
@@ -66,13 +66,13 @@
   --destructive: oklch(0.577 0.245 27.325);
   --border: #e2e8f0;
   --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --ring: #8dafef;
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
+  --radius: 0.75rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -150,4 +150,232 @@
     max-width: 100% !important;
     padding: 24px !important;
   }
+}
+
+
+/* -------------------------------------------------------
+   RKP / Workspace 2026
+   Shared visual language for all authenticated screens.
+   Pure presentation: no changes to data or workflows.
+   ------------------------------------------------------- */
+.rkp-app-shell {
+  --rkp-ink: #0b1935;
+  --rkp-blue: #255bd9;
+  --rkp-line: #e5eaf3;
+  --rkp-canvas: #f6f8fc;
+  background: var(--rkp-canvas);
+  color: #17243a;
+  background-image:
+    radial-gradient(ellipse 800px 440px at 95% -20%, rgba(79, 126, 227, .055), transparent 75%),
+    radial-gradient(ellipse 650px 480px at 0% 100%, rgba(71, 180, 185, .042), transparent 76%);
+}
+
+.rkp-sidebar {
+  background: linear-gradient(168deg, #0b1a38 0%, #102548 51%, #0b1e3d 100%);
+  box-shadow: 2px 0 18px rgba(11, 25, 53, .035);
+}
+
+.rkp-sidebar-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,.16) transparent;
+}
+.rkp-sidebar-scroll::-webkit-scrollbar { width: 5px; }
+.rkp-sidebar-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,.16);
+  border-radius: 999px;
+}
+
+.rkp-main-column { min-width: 0; }
+.rkp-main-content { min-width: 0; overflow-x: clip; }
+
+.rkp-main-content .rkp-page {
+  width: 100%;
+  max-width: 1576px;
+  min-height: calc(100dvh - 76px);
+  margin: 0 auto;
+  padding: clamp(20px, 2.2vw, 38px);
+  background: transparent !important;
+  background-image: none !important;
+}
+
+.rkp-page h1 {
+  color: #102340;
+  font-size: clamp(1.85rem, 2.2vw, 2.35rem);
+  font-weight: 760;
+  letter-spacing: -.045em;
+  line-height: 1.16;
+}
+.rkp-page h2, .rkp-page h3 {
+  letter-spacing: -.025em;
+}
+
+.rkp-page :is(.rounded-3xl, .rounded-2xl).shadow-lg,
+.rkp-page [data-slot="card"] {
+  border-color: var(--rkp-line);
+  background-color: rgba(255,255,255,.97);
+  box-shadow: 0 3px 8px rgba(13, 38, 82, .025), 0 14px 36px rgba(13, 38, 82, .04);
+}
+.rkp-page [data-slot="card"] {
+  border-radius: 20px;
+}
+.rkp-page .shadow-lg {
+  --tw-shadow: 0 4px 24px rgba(19, 43, 82, .055);
+}
+
+.rkp-page :is(input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]), textarea, select, [data-slot="select-trigger"]) {
+  min-height: 42px;
+  max-width: 100%;
+  border: 1px solid #dfe6f1;
+  border-radius: 12px;
+  background-color: #ffffff;
+  color: #24324b;
+  box-shadow: 0 1px 1px rgba(12, 31, 65, .02);
+  transition: border-color .2s ease, box-shadow .2s ease, background-color .2s ease;
+}
+.rkp-page :is(input, textarea, select)::placeholder {
+  color: #94a1b7;
+}
+.rkp-page :is(input:not([type="checkbox"]):not([type="radio"]), textarea, select, [data-slot="select-trigger"]):focus-visible {
+  outline: 0;
+  border-color: #7b9cef;
+  box-shadow: 0 0 0 3px rgba(53, 109, 228, .13);
+}
+.rkp-page button, .rkp-page a {
+  -webkit-tap-highlight-color: transparent;
+}
+.rkp-page :is(button, a):focus-visible,
+.rkp-topbar button:focus-visible,
+.rkp-sidebar :is(a, button):focus-visible {
+  outline: 3px solid rgba(74, 142, 255, .55);
+  outline-offset: 3px;
+}
+.rkp-page :is(button, a)[class*="bg-sky-600"] {
+  background-color: #285cce;
+}
+.rkp-page :is(button, a)[class*="bg-sky-600"]:hover {
+  background-color: #184ab9;
+}
+.rkp-page [class*="bg-sky-50"] {
+  border-color: #e5ebf7;
+}
+.rkp-page table {
+  width: 100%;
+  min-width: 660px;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: #293850;
+}
+.rkp-page :has(> table) {
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd6e7 transparent;
+}
+.rkp-page table thead {
+  background: #f4f7fb;
+}
+.rkp-page table th {
+  padding: 13px 16px;
+  color: #68778e;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.rkp-page table td {
+  padding: 13px 16px;
+  border-bottom: 1px solid #edf1f6;
+  vertical-align: middle;
+}
+.rkp-page table tbody tr:last-child td {
+  border-bottom: 0;
+}
+.rkp-page table tbody tr:hover {
+  background-color: #f8faff;
+}
+.rkp-page table tr {
+  transition: background-color .18s ease;
+}
+.rkp-page :is(.rounded-full)[class*="bg-sky"] {
+  background: #e7efff;
+  color: #285ac8;
+}
+
+@media (max-width: 640px) {
+  .rkp-main-content .rkp-page {
+    padding: 19px 15px 32px;
+  }
+  .rkp-page h1 {
+    font-size: 1.75rem;
+    letter-spacing: -.038em;
+  }
+  .rkp-page :is(.rounded-3xl, .rounded-2xl).shadow-lg {
+    border-radius: 19px;
+  }
+  .rkp-page :is(table) {
+    min-width: 620px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rkp-app-shell *,
+  .rkp-app-shell *::before,
+  .rkp-app-shell *::after {
+    scroll-behavior: auto !important;
+    animation-duration: .01ms !important;
+    transition-duration: .01ms !important;
+  }
+}
+
+@media print {
+  .rkp-sidebar, .rkp-topbar { display: none !important; }
+  .rkp-app-shell { display: block !important; background: white !important; }
+  .rkp-main-content { overflow: visible !important; }
+  .rkp-main-content .rkp-page { max-width: 100%; padding: 0 !important; background: white !important; }
+  .rkp-page table { min-width: 0; }
+}
+
+
+/* Shared form overlay treatment (Radix portals are mounted under body). */
+[data-slot="dialog-overlay"] {
+  background: rgba(9, 21, 45, .52);
+  backdrop-filter: blur(4px);
+}
+[data-slot="dialog-content"] {
+  width: calc(100% - 28px);
+  max-width: min(560px, calc(100vw - 28px));
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  border: 1px solid #e6eaf3;
+  border-radius: 24px;
+  padding: 26px;
+  background-color: #fff;
+  box-shadow: 0 24px 80px rgba(7, 22, 49, .2);
+}
+[data-slot="dialog-title"] {
+  font-size: 19px;
+  font-weight: 750;
+  letter-spacing: -.035em;
+  color: #122541;
+}
+[data-slot="dialog-content"] :is([data-slot="input"], [data-slot="textarea"], [data-slot="select-trigger"], input, textarea, select) {
+  min-height: 44px;
+  border-radius: 12px;
+}
+[data-slot="dialog-content"] [data-slot="button"]:not([data-size^="icon"]) {
+  min-height: 40px;
+  border-radius: 11px;
+  padding-left: 15px;
+  padding-right: 15px;
+}
+[data-slot="select-content"] {
+  border-radius: 14px;
+  border: 1px solid #e4eaf3;
+  box-shadow: 0 14px 40px rgba(18,35,63,.14);
+}
+@media (max-width: 640px) {
+  [data-slot="dialog-content"] { padding: 20px; border-radius: 20px; }
 }

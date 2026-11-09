@@ -16,7 +16,7 @@ import {
   Users,
 } from "lucide-react";
 
-import DashboardHeader from "@/components/dashboard/dashboard-header";
+
 import ActivityTimeline from "@/components/assignments/activity-timeline";
 import AssignmentChecklist from "@/components/assignments/assignment-checklist";
 import AssignmentNotes from "@/components/assignments/assignment-notes";
@@ -687,9 +687,7 @@ export default function AssignmentDetailsPage({
   if (loading) {
     return (
       <>
-        <DashboardHeader />
-
-        <div className="min-h-screen bg-gradient-to-br from-sky-50 via-blue-50 to-cyan-50 p-6">
+        <div className="rkp-page min-h-screen bg-gradient-to-br from-sky-50 via-blue-50 to-cyan-50 p-6">
           <div className="flex min-h-56 items-center justify-center rounded-3xl border border-sky-100 bg-white/70 p-8 text-slate-500 shadow-lg">
             <Loader2 className="mr-3 h-5 w-5 animate-spin" />
             Loading assignment...
@@ -702,9 +700,7 @@ export default function AssignmentDetailsPage({
   if (!assignment) {
     return (
       <>
-        <DashboardHeader />
-
-        <div className="min-h-screen bg-gradient-to-br from-sky-50 via-blue-50 to-cyan-50 p-6">
+        <div className="rkp-page min-h-screen bg-gradient-to-br from-sky-50 via-blue-50 to-cyan-50 p-6">
           <div className="rounded-3xl border border-red-100 bg-red-50 p-8 text-red-700">
             <div className="flex items-center gap-3">
               <AlertCircle size={22} />
@@ -770,9 +766,7 @@ export default function AssignmentDetailsPage({
 
   return (
     <>
-      <DashboardHeader />
-
-      <div className="min-h-screen space-y-6 bg-gradient-to-br from-sky-50 via-blue-50 to-cyan-50 p-4 sm:p-6">
+      <div className="rkp-page min-h-screen space-y-6 bg-gradient-to-br from-sky-50 via-blue-50 to-cyan-50 p-4 sm:p-6">
         <motion.div
           initial={{
             opacity: 0,

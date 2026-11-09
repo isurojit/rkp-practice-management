@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Building2, Clock3, FileText, IndianRupee } from "lucide-react";
 
-import DashboardHeader from "@/components/dashboard/dashboard-header";
+
 import { getClientAnalytics } from "@/lib/services/client-analytics-service";
 
 export default function ClientAnalyticsPage() {
@@ -45,9 +45,7 @@ export default function ClientAnalyticsPage() {
 
   return (
     <>
-      <DashboardHeader />
-
-      <div className="min-h-screen bg-linear-to-br from-sky-50 via-blue-50 to-cyan-50 p-6 space-y-6">
+      <div className="rkp-page min-h-screen bg-linear-to-br from-sky-50 via-blue-50 to-cyan-50 p-6 space-y-6">
         <motion.div
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}

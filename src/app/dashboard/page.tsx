@@ -21,7 +21,7 @@ import {
   Users,
 } from "lucide-react";
 
-import DashboardHeader from "@/components/dashboard/dashboard-header";
+
 import DashboardCards from "@/components/dashboard/dashboard-cards";
 import ActiveEmployeesWidget from "@/components/dashboard/active-employees-widget";
 
@@ -401,9 +401,7 @@ export default function DashboardPage() {
   if (authLoading || loading) {
     return (
       <>
-        <DashboardHeader />
-
-        <div className="min-h-screen bg-gradient-to-br from-sky-50 via-blue-50 to-cyan-50 p-6">
+        <div className="rkp-page min-h-screen bg-gradient-to-br from-sky-50 via-blue-50 to-cyan-50 p-6">
           <div className="flex h-[60vh] items-center justify-center">
             <div className="flex items-center rounded-3xl border border-sky-100 bg-white/70 px-8 py-6 text-slate-500 shadow-lg backdrop-blur-xl">
               <Loader2 className="mr-3 h-5 w-5 animate-spin" />
@@ -417,9 +415,7 @@ export default function DashboardPage() {
 
   return (
     <>
-      <DashboardHeader />
-
-      <div className="min-h-screen bg-gradient-to-br from-sky-50 via-blue-50 to-cyan-50">
+      <div className="rkp-page min-h-screen bg-gradient-to-br from-sky-50 via-blue-50 to-cyan-50">
         <div className="space-y-8 p-4 sm:p-6">
           <motion.div
             initial={{

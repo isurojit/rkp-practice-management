@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import DashboardHeader from "@/components/dashboard/dashboard-header";
+
 import AddUserDialog from "@/components/users/add-user-dialog";
 import UsersTable from "@/components/users/users-table";
 
@@ -30,9 +30,7 @@ export default function UsersPage() {
 
   return (
     <>
-      <DashboardHeader />
-
-      <div className="p-6">
+      <div className="rkp-page p-6">
         {/* Page Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
