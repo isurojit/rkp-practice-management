@@ -416,7 +416,7 @@ export default function DashboardPage() {
   return (
     <>
       <div className="rkp-page min-h-screen bg-gradient-to-br from-sky-50 via-blue-50 to-cyan-50">
-        <div className="space-y-8 p-4 sm:p-6">
+        <div className="space-y-7">
           <motion.div
             initial={{
               opacity: 0,
@@ -426,14 +426,14 @@ export default function DashboardPage() {
               opacity: 1,
               y: 0,
             }}
-            className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between"
+            className="rkp-hero-panel flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between"
           >
             <div>
               <p className="text-sm font-semibold uppercase tracking-wide text-sky-700">
                 RKP Associates
               </p>
 
-              <h1 className="mt-1 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-600 bg-clip-text text-4xl font-black text-transparent md:text-5xl">
+              <h1 className="mt-1 text-[clamp(2rem,3.2vw,3rem)] font-extrabold tracking-[-0.05em]">
                 Dashboard
               </h1>
 
@@ -455,7 +455,7 @@ export default function DashboardPage() {
                   showRefreshLoader: true,
                 })
               }
-              className="gap-2 self-start rounded-xl border-sky-200 bg-white/80"
+              className="rkp-secondary-action gap-2 self-start rounded-xl"
             >
               {refreshing ? (
                 <Loader2 size={16} className="animate-spin" />
@@ -504,7 +504,7 @@ export default function DashboardPage() {
                   transition={{
                     delay: 0.15,
                   }}
-                  className="rounded-3xl border border-sky-100 bg-white/70 p-6 shadow-xl backdrop-blur-xl"
+                  className="rkp-surface-card rounded-[24px] p-6"
                 >
                   <div className="mb-4 flex items-center gap-3">
                     <TimerReset className="text-sky-700" />
@@ -675,7 +675,7 @@ export default function DashboardPage() {
                   opacity: 1,
                   y: 0,
                 }}
-                className="rounded-3xl border border-sky-100 bg-white/75 p-6 shadow-xl backdrop-blur-xl"
+                className="rkp-surface-card rounded-[24px] p-6"
               >
                 <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
@@ -779,7 +779,7 @@ export default function DashboardPage() {
             transition={{
               delay: 0.25,
             }}
-            className="rounded-3xl border border-sky-100 bg-white/70 p-8 shadow-xl backdrop-blur-xl"
+            className="rkp-surface-card rounded-[24px] p-7"
           >
             <h2 className="mb-3 text-2xl font-bold text-slate-800">
               Welcome to RKP Associates
@@ -804,7 +804,7 @@ export default function DashboardPage() {
             transition={{
               delay: 0.35,
             }}
-            className="rounded-3xl border border-sky-100 bg-white/70 p-8 shadow-xl backdrop-blur-xl"
+            className="rkp-surface-card rounded-[24px] p-7"
           >
             <h2 className="mb-6 text-2xl font-bold text-slate-800">
               Quick Actions
