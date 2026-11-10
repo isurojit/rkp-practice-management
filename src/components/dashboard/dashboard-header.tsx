@@ -7,6 +7,7 @@ import { ArrowUpRight, ChevronRight, LogOut, Menu } from "lucide-react";
 import { auth } from "@/lib/firebase";
 import { navigation } from "@/constants/navigation";
 import { useAuth } from "@/providers/auth-provider";
+import { useFirmSettings } from "@/providers/firm-settings-provider";
 
 interface DashboardHeaderProps {
   onMenuClick: () => void;
@@ -27,6 +28,7 @@ function getPageName(pathname: string): string {
 export default function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
   const pathname = usePathname();
   const { user, role } = useAuth();
+  const { settings } = useFirmSettings();
   const pageName = getPageName(pathname);
   const displayName = user?.displayName?.trim() || user?.email?.split("@")[0] || "Team member";
   const initial = displayName.charAt(0).toUpperCase();
@@ -68,7 +70,7 @@ export default function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
         <div className="flex shrink-0 items-center gap-3">
           <div className="hidden items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-600 xl:flex">
             <span className="h-2 w-2 rounded-full bg-emerald-500" />
-            Practice management
+            {settings.firmName}
             <ArrowUpRight size={13} className="text-slate-400" />
           </div>
 
