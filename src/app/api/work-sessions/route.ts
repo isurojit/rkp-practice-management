@@ -161,15 +161,20 @@ export async function POST(request: NextRequest) {
       return errorJson("Invalid work action.", 400);
     }
     if (!id || id.length > 300 || id.includes("/")) return errorJson("Invalid assignment ID.", 400);
-    if ((action === "stop" || action === "complete") && (narration.length < 5 || narration.length > 3000)) {
-      return errorJson("Enter a short work narration (5–3000 characters).", 400);
-    }
+    if (narration.length > 3000) return errorJson("Narration must not exceed 3,000 characters.", 400);
 
-    const [document, profile, lock] = await Promise.all([
+    const [document, profile, lock, firmDocument] = await Promise.all([
       readServerDoc("assignments", id),
       readServerDoc("users", caller.uid),
       readServerDoc("activeWorkSessions", caller.uid),
+      readServerDoc("firm_settings", "primary"),
     ]);
+
+    const firmPolicy = firmDocument ? fromFirestoreFields(firmDocument.fields) : {};
+    const minNarration = Math.max(5, Math.min(80, Number(firmPolicy.minimumNarrationChars) || 5));
+    if ((action === "stop" || action === "complete") && narration.length < minNarration) {
+      return errorJson("Enter a work narration of at least " + minNarration + " characters.", 400);
+    }
 
     if (!document || !profile) return errorJson("Assignment or employee profile not found.", 404);
     const assignment = fromFirestoreFields(document.fields);
