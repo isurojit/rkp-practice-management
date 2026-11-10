@@ -832,3 +832,89 @@ html.dark .rkp-topbar :is([class*="text-slate-500"],[class*="text-slate-400"]) {
     box-shadow: none !important;
   }
 }
+
+
+/* Shared readable controls, avatar and informative empty states. */
+.rkp-secondary-action {
+  color: var(--rkp-text-primary);
+  background: var(--rkp-surface-raised);
+  border: 1px solid var(--rkp-border-strong);
+  box-shadow: 0 1px 4px rgba(13, 32, 62, .04);
+  transition: background-color .2s ease, border-color .2s ease, box-shadow .2s ease;
+}
+.rkp-secondary-action:hover {
+  color: var(--rkp-text-strong);
+  background: var(--rkp-surface-soft);
+  border-color: #8cace4;
+}
+.rkp-empty-surface {
+  color: var(--rkp-text-primary);
+  background: var(--rkp-surface-soft);
+  border-color: var(--rkp-border-strong);
+}
+.rkp-empty-icon {
+  color: var(--rkp-accent-ink);
+  background: var(--rkp-accent-soft);
+}
+.rkp-avatar {
+  color: var(--rkp-accent-ink);
+  background: var(--rkp-accent-soft);
+}
+html.dark .rkp-page .rkp-secondary-action {
+  color: var(--rkp-text-primary) !important;
+  background: var(--rkp-surface-raised) !important;
+  border-color: var(--rkp-border-strong) !important;
+}
+html.dark .rkp-page .rkp-secondary-action:hover {
+  background: var(--rkp-surface-soft) !important;
+}
+html.dark .rkp-page .rkp-empty-surface {
+  color: var(--rkp-text-primary);
+  background: var(--rkp-surface-soft) !important;
+  border-color: var(--rkp-border-strong) !important;
+}
+html.dark .rkp-page .rkp-empty-icon,
+html.dark .rkp-page .rkp-avatar {
+  background: var(--rkp-accent-soft) !important;
+  color: var(--rkp-accent-ink) !important;
+}
+html.dark .rkp-page .rkp-metric-card {
+  background:
+    radial-gradient(circle at 100% 0%, var(--metric-ambient), transparent 55%),
+    var(--rkp-surface);
+  border-color: var(--rkp-border-strong);
+  color: var(--rkp-text-primary);
+}
+html.dark .rkp-page .rkp-metric-card .rkp-metric-icon {
+  color: var(--metric-hue) !important;
+  background: var(--metric-tint) !important;
+}
+html.dark .rkp-page .rkp-metric-card .rkp-metric-label {
+  color: var(--rkp-text-secondary) !important;
+}
+html.dark .rkp-page .rkp-metric-card .rkp-metric-detail {
+  color: var(--rkp-text-muted) !important;
+}
+html.dark .rkp-page .rkp-metric-card .rkp-metric-value {
+  color: var(--rkp-text-strong) !important;
+}
+
+/* Reapply a visible focus ring even on full dark surfaces. */
+.rkp-page :is(button,a,input,select,textarea):focus-visible {
+  outline-color: #8ab8ff;
+  outline-offset: 2px;
+}
+
+/* Printers should retain black text on white paper regardless of chosen theme. */
+@media print {
+  html.dark .rkp-page :is(
+    .rkp-metric-value,
+    .rkp-metric-label,
+    .rkp-metric-detail,
+    table,
+    table th,
+    table td
+  ) {
+    color: #111827 !important;
+  }
+}
