@@ -112,7 +112,9 @@ export async function POST(
     return NextResponse.json({
       error: error instanceof Error && error.message.startsWith("This record")
         ? error.message
-        : "Task could not be shared. Check server configuration or permissions.",
+        : error instanceof Error && /not configured|service account|credentials/i.test(error.message)
+          ? "Firebase server administration is not configured in Netlify. Contact the Super Admin."
+          : "Task could not be shared. Check server configuration or permissions.",
     }, { status: 503 });
   }
 }
