@@ -87,10 +87,14 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Client creation failed:", error);
     const conflict = error instanceof Error && error.message.includes("work record changed");
+    const setupRequired = error instanceof Error &&
+      /not configured|service account|credentials/i.test(error.message);
     return NextResponse.json({
       error: conflict
         ? "This client code may already exist. Choose a different code."
-        : "Client could not be created. Check server permissions and configuration.",
+        : setupRequired
+          ? "Firebase server administration is not configured in Netlify. Super Admin: configure FIREBASE_SERVICE_ACCOUNT_JSON securely before adding clients."
+          : "Client could not be created. Check server permissions and function logs.",
     }, { status: conflict ? 409 : 503 });
   }
 }
