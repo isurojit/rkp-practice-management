@@ -55,7 +55,7 @@ export default function DashboardCards({ stats }: Props) {
             <div>
               <p className="rkp-metric-label text-sm font-semibold">{title}</p>
               <p className="rkp-metric-value mt-3 text-[36px] font-extrabold leading-none tracking-[-0.055em]">
-                {value.toLocaleString("en-IN")}
+                {Number(value ?? 0).toLocaleString("en-IN")}
               </p>
             </div>
             <span className="rkp-metric-icon inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl">
