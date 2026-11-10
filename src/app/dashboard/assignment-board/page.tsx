@@ -8,13 +8,8 @@ import { ArrowUpRight, BriefcaseBusiness, RefreshCw } from "lucide-react";
 
 
 import { getAssignmentHealth } from "@/lib/utils/assignment-health";
-import { getAssignmentsWithAnalytics } from "@/lib/services/assignment-analytics-service";
-import type { Assignment, AssignmentStatus } from "@/types/assignment";
-
-interface BoardAssignment extends Assignment {
-  actualHours: number;
-  checklistProgress: number;
-}
+import { getAssignmentsWithAnalytics, type BoardAssignment } from "@/lib/services/assignment-analytics-service";
+import type { AssignmentStatus } from "@/types/assignment";
 
 const columns: {
   key: AssignmentStatus;
@@ -40,11 +35,12 @@ export default function AssignmentBoardPage() {
 
       const data = await getAssignmentsWithAnalytics();
 
-      setAssignments(data as BoardAssignment[]);
+      setAssignments(data);
     } catch (err) {
       console.error("Failed to load assignment board:", err);
 
-      setError("Unable to load assignments.");
+      setAssignments([]);
+      setError(err instanceof Error ? err.message : "Unable to load assignments.");
     } finally {
       setLoading(false);
     }
@@ -83,15 +79,23 @@ export default function AssignmentBoardPage() {
           </button>
         </motion.div>
 
-        {error && (
-          <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-red-700">
-            {error}
-          </div>
-        )}
-
         {loading ? (
           <div className="rounded-3xl border border-sky-100 bg-white/80 p-8 text-center text-slate-500 shadow-sm">
             Loading assignment board...
+          </div>
+        ) : error ? (
+          <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-6 text-red-800">
+            <h2 className="text-lg font-bold">Assignment Board is unavailable</h2>
+            <p className="mt-2 text-sm leading-6">{error}</p>
+            <div className="mt-4 flex flex-wrap gap-3">
+              <button type="button" onClick={() => void loadAssignments()}
+                className="rounded-xl bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800">
+                Retry loading
+              </button>
+              <Link href="/dashboard/settings" className="rounded-xl border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-800">
+                Open Settings
+              </Link>
+            </div>
           </div>
         ) : (
           <>

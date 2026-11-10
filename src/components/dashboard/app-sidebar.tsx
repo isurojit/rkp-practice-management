@@ -6,6 +6,7 @@ import { ArrowUpRight, ShieldCheck, X } from "lucide-react";
 
 import { navigation } from "@/constants/navigation";
 import { useAuth } from "@/providers/auth-provider";
+import { useFirmSettings } from "@/providers/firm-settings-provider";
 
 interface AppSidebarProps {
   mobileOpen: boolean;
@@ -23,6 +24,7 @@ const sections = [
 export default function AppSidebar({ mobileOpen, onClose }: AppSidebarProps) {
   const pathname = usePathname();
   const { role } = useAuth();
+  const { settings } = useFirmSettings();
 
   return (
     <>
@@ -45,7 +47,7 @@ export default function AppSidebar({ mobileOpen, onClose }: AppSidebarProps) {
           </div>
 
           <div className="min-w-0 flex-1">
-            <p className="truncate text-[17px] font-bold tracking-tight text-white">RKP Associates</p>
+            <p className="truncate text-[17px] font-bold tracking-tight text-white">{settings.firmName}</p>
             <p className="mt-0.5 text-[11px] font-medium tracking-[0.04em] text-slate-300/80">Practice management</p>
           </div>
 

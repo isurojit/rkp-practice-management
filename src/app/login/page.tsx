@@ -2,6 +2,8 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { sendPasswordResetEmail } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 import { motion, useReducedMotion } from "framer-motion";
 import {
   ArrowRight,
@@ -36,6 +38,8 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [passwordNotice, setPasswordNotice] = useState("");
+  const [sendingReset, setSendingReset] = useState(false);
 
   useEffect(() => {
     if (!authLoading && user) router.replace("/dashboard");
@@ -58,6 +62,25 @@ export default function LoginPage() {
       setError("We couldn't sign you in. Check your credentials and try again.");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const requestPasswordReset = async () => {
+    setError("");
+    setPasswordNotice("");
+    if (!email.trim()) {
+      setError("Enter your registered email address first to receive a reset link.");
+      return;
+    }
+    setSendingReset(true);
+    try {
+      await sendPasswordResetEmail(auth, email.trim());
+      setPasswordNotice("If this email has an account, a password reset link has been requested. Check your inbox and spam folder.");
+    } catch (error) {
+      console.error("Password reset error:", error);
+      setError("Unable to send password reset. Check your email address or contact the firm administrator.");
+    } finally {
+      setSendingReset(false);
     }
   };
 
@@ -250,6 +273,18 @@ export default function LoginPage() {
                   </button>
                 </div>
               </div>
+
+              <div className="flex justify-end">
+                <button type="button" onClick={() => void requestPasswordReset()}
+                  disabled={sendingReset} className="text-[13px] font-bold text-blue-700 hover:text-blue-900 disabled:opacity-60">
+                  {sendingReset ? "Sending reset link..." : "Forgot password?"}
+                </button>
+              </div>
+              {passwordNotice && (
+                <p role="status" className="rounded-xl border border-emerald-100 bg-emerald-50 p-3 text-sm text-emerald-800">
+                  {passwordNotice}
+                </p>
+              )}
 
               <button
                 type="submit"
