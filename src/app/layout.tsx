@@ -2,6 +2,7 @@ import { AuthProvider } from "@/providers/auth-provider";
 import { Geist } from "next/font/google";
 import { cn } from "@/lib/utils";
 import { ThemeProvider } from "@/providers/theme-provider";
+import { WorkspacePreferencesProvider } from "@/providers/workspace-preferences";
 import "./globals.css";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
@@ -19,7 +20,7 @@ export default function RootLayout({
     >
       <body>
         <AuthProvider>
-          <ThemeProvider>{children}</ThemeProvider>
+          <ThemeProvider><WorkspacePreferencesProvider>{children}</WorkspacePreferencesProvider></ThemeProvider>
         </AuthProvider>
       </body>
     </html>
