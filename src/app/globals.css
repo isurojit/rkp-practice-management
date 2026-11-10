@@ -394,3 +394,178 @@
   .rkp-page { font-size: 16px; }
   .rkp-page button, .rkp-page input, .rkp-page textarea, .rkp-page select { font-size: 15px; }
 }
+
+
+/* RKP controlled appearance: theme, type scale, density, and accent. */
+:root { --rkp-action: #285cce; --rkp-action-hover: #184ab9; }
+html[data-rkp-accent="teal"] { --rkp-action: #087f8c; --rkp-action-hover: #086874; }
+html[data-rkp-accent="violet"] { --rkp-action: #7047cb; --rkp-action-hover: #5834ab; }
+html[data-rkp-accent="blue"] { --rkp-action: #285cce; --rkp-action-hover: #184ab9; }
+
+.rkp-page :is(a,button)[class*="bg-blue-600"],
+.rkp-page :is(a,button)[class*="bg-sky-600"],
+.rkp-page [data-slot="button"][data-variant="default"],
+.rkp-topbar [class*="bg-blue-600"] {
+  background-color: var(--rkp-action) !important;
+}
+.rkp-page :is(a,button)[class*="bg-blue-600"]:hover,
+.rkp-page :is(a,button)[class*="bg-sky-600"]:hover {
+  background-color: var(--rkp-action-hover) !important;
+}
+
+/* Radix dialogs render in the BODY, outside .rkp-page.
+   These explicit colors prevent white text on white inputs. */
+[data-slot="dialog-content"] {
+  background: #ffffff;
+  color: #17243a;
+  color-scheme: light;
+}
+[data-slot="dialog-content"] :is(input,textarea,select,[data-slot="input"],[data-slot="select-trigger"]) {
+  min-height: 45px;
+  background: #ffffff !important;
+  border: 1px solid #d5deed !important;
+  border-radius: 11px;
+  color: #14243a !important;
+  -webkit-text-fill-color: #14243a;
+  caret-color: #285cce;
+  opacity: 1;
+}
+[data-slot="dialog-content"] :is(input,textarea,select)::placeholder {
+  color: #7f8da4 !important;
+  opacity: 1;
+  -webkit-text-fill-color: #7f8da4;
+}
+[data-slot="dialog-content"] :is(input,textarea,select):disabled {
+  background: #f3f6fa !important;
+  opacity: .65;
+}
+[data-slot="dialog-content"] :is(input,textarea,select):focus-visible {
+  outline: 2px solid rgba(40,92,206,.36);
+  outline-offset: 1px;
+}
+[data-slot="dialog-content"] select option {
+  color: #14243a;
+  background: #fff;
+}
+[data-slot="dialog-content"] [data-slot="dialog-close"] {
+  color: #475569;
+}
+[data-slot="dialog-content"] [data-slot="button"][data-variant="default"] {
+  background: var(--rkp-action);
+  color: #fff;
+  -webkit-text-fill-color: #fff;
+}
+
+html[data-rkp-text="large"] .rkp-page :is(p,label,input,select,textarea,button,td),
+html[data-rkp-text="large"] .rkp-sidebar nav a { font-size: 16px !important; }
+html[data-rkp-text="large"] .rkp-page th { font-size: 13px !important; }
+html[data-rkp-text="large"] .rkp-page h1 { font-size: clamp(2rem,2.4vw,2.55rem); }
+html[data-rkp-text="extra"] .rkp-page :is(p,label,input,select,textarea,button,td),
+html[data-rkp-text="extra"] .rkp-sidebar nav a { font-size: 18px !important; }
+html[data-rkp-text="extra"] .rkp-page th { font-size: 14px !important; }
+html[data-rkp-text="extra"] .rkp-page h1 { font-size: clamp(2.15rem,2.7vw,2.8rem); }
+
+html[data-rkp-density="compact"] .rkp-page :is(.rounded-3xl,.rounded-2xl)[class*="p-6"] { padding: 16px; }
+html[data-rkp-density="compact"] .rkp-page table :is(th,td) { padding: 8px 12px; }
+html[data-rkp-motion="reduced"] .rkp-app-shell *,
+html[data-rkp-motion="reduced"] .rkp-app-shell *::before,
+html[data-rkp-motion="reduced"] .rkp-app-shell *::after {
+  animation-duration: .01ms !important;
+  transition-duration: .01ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* Existing pages have hardcoded Tailwind slate/white colors. Keep them readable
+   while the remaining screens are migrated to semantic tokens. */
+html.dark {
+  --primary: #4785ee;
+  --primary-foreground: #ffffff;
+  --background: #0c1627;
+  --foreground: #f1f5ff;
+  --card: #17253c;
+  --card-foreground: #ecf2ff;
+  --popover: #17253c;
+  --popover-foreground: #ecf2ff;
+  --border: #314360;
+  --muted: #1d304c;
+  --input: #29405e;
+  color-scheme: dark;
+}
+html.dark .rkp-app-shell {
+  --rkp-canvas: #0d1628;
+  --rkp-line: #30415d;
+  background: #0d1628;
+  color: #e5efff;
+  background-image: radial-gradient(ellipse at 80% 0%, rgba(56,100,185,.1),transparent 60%);
+}
+html.dark .rkp-topbar {
+  background: rgba(15,27,46,.96) !important;
+  border-color: #2b3a54 !important;
+}
+html.dark .rkp-topbar [class*="bg-white"],
+html.dark .rkp-topbar [class*="bg-slate-50"] { background: #17253c !important; }
+html.dark .rkp-topbar :is(h2,p,[class*="text-slate-800"],[class*="text-slate-900"]) { color: #e8f0fc !important; }
+html.dark .rkp-page h1, html.dark .rkp-page h2, html.dark .rkp-page h3 {
+  color: #eaf1fc !important;
+}
+html.dark .rkp-page [class*="bg-white"],
+html.dark .rkp-page [data-slot="card"],
+html.dark .rkp-page [class*="bg-slate-50"],
+html.dark .rkp-page [class*="bg-sky-50"],
+html.dark .rkp-page [class*="bg-blue-50"] {
+  background: #17253c !important;
+}
+html.dark .rkp-page [class*="border-slate"],
+html.dark .rkp-page [class*="border-sky"],
+html.dark .rkp-page [class*="border-blue"],
+html.dark .rkp-page [data-slot="card"] {
+  border-color: #30415d !important;
+}
+html.dark .rkp-page [class*="text-slate-800"],
+html.dark .rkp-page [class*="text-slate-900"],
+html.dark .rkp-page [class*="text-slate-700"],
+html.dark .rkp-page [class*="text-slate-600"],
+html.dark .rkp-page [class*="text-sky-700"] { color: #e0eafd !important; }
+html.dark .rkp-page [class*="text-slate-500"],
+html.dark .rkp-page [class*="text-slate-400"] { color: #a9bad3 !important; }
+html.dark .rkp-page table thead { background: #20314b; }
+html.dark .rkp-page table td { border-color: #30415d; }
+html.dark .rkp-page table tbody tr:hover { background: #1c304c; }
+html.dark .rkp-page :is(input,select,textarea,[data-slot="select-trigger"]) {
+  background: #20324c !important;
+  color: #f2f7ff !important;
+  border-color: #3a506d !important;
+}
+html.dark .rkp-page :is(input,select,textarea)::placeholder { color: #a8b7cd !important; }
+html.dark .rkp-page [class*="bg-rose-50"],
+html.dark .rkp-page [class*="bg-red-50"] { background: #442337 !important; color: #ffb5bf !important; }
+
+html.dark [data-slot="dialog-content"] {
+  color-scheme: dark;
+  background: #15243c !important;
+  color: #eef4ff !important;
+  border-color: #344862;
+}
+html.dark [data-slot="dialog-title"],
+html.dark [data-slot="dialog-content"] :is(label,h2,h3,p)[class*="text-slate-700"],
+html.dark [data-slot="dialog-content"] :is(label,h2,h3,p)[class*="text-slate-800"] {
+  color: #edf3ff !important;
+}
+html.dark [data-slot="dialog-content"] :is(input,textarea,select,[data-slot="input"],[data-slot="select-trigger"]) {
+  background: #20334d !important;
+  border-color: #405574 !important;
+  color: #f1f6ff !important;
+  -webkit-text-fill-color: #f1f6ff;
+}
+html.dark [data-slot="dialog-content"] :is(input,textarea,select)::placeholder {
+  color: #afbbce !important;
+  -webkit-text-fill-color: #afbbce;
+}
+html.dark [data-slot="dialog-content"] select option {
+  color: #f1f6ff;
+  background: #20334d;
+}
+html.dark [data-slot="dialog-content"] [data-slot="dialog-close"] { color: #cbd5e1; }
+@media print {
+  html.dark .rkp-page, html.dark .rkp-page * { color: #111827 !important; background: #fff !important; }
+}
