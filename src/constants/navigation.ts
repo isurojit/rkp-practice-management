@@ -98,6 +98,6 @@ export const navigation = [
     title: "Settings",
     url: "/dashboard/settings",
     icon: Settings,
-    roles: ["super_admin"],
+    roles: ["super_admin", "manager", "employee"],
   },
 ];
