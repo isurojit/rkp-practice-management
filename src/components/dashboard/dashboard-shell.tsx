@@ -3,12 +3,13 @@
 import { useState, type ReactNode } from "react";
 import AppSidebar from "@/components/dashboard/app-sidebar";
 import DashboardHeader from "@/components/dashboard/dashboard-header";
+import { FirmSettingsProvider } from "@/providers/firm-settings-provider";
 
 export default function DashboardShell({ children }: { children: ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <div className="rkp-app-shell flex min-h-dvh w-full">
+    <FirmSettingsProvider><div className="rkp-app-shell flex min-h-dvh w-full">
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-3 focus:z-[100] focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:text-slate-900"
@@ -27,6 +28,6 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
           {children}
         </main>
       </div>
-    </div>
+    </div></FirmSettingsProvider>
   );
 }
