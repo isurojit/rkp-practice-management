@@ -7,11 +7,7 @@ import { motion } from "framer-motion";
 
 import { getClients } from "@/lib/services/client-service";
 import { getClientBillingData } from "@/lib/services/billing-service";
-import {
-  createInvoice,
-  generateInvoiceNo,
-} from "@/lib/services/invoice-service";
-import { markTimesheetsAsBilled } from "@/lib/services/timesheet-service";
+import { createInvoice } from "@/lib/services/invoice-service";
 
 import { Input } from "@/components/ui/input";
 
@@ -107,7 +103,7 @@ export default function ReportsPage() {
       setGenerating(true);
 
       const invoiceRef = await createInvoice({
-        invoiceNo: generateInvoiceNo(),
+        invoiceNo: "GENERATED_BY_SERVER",
 
         clientId: selectedClientData.id,
         clientName: selectedClientData.clientName,
@@ -131,12 +127,10 @@ export default function ReportsPage() {
         status: "generated",
       });
 
-      await markTimesheetsAsBilled(billingData.timesheets, invoiceRef.id);
-
       router.push(`/dashboard/invoices/${invoiceRef.id}`);
     } catch (error) {
       console.error("Failed to generate invoice:", error);
-      alert("Failed to generate invoice");
+      alert(error instanceof Error ? error.message : "Unable to generate invoice");
     } finally {
       setGenerating(false);
     }
