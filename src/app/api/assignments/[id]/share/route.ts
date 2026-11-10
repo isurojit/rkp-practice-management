@@ -23,6 +23,14 @@ export async function POST(
       return NextResponse.json({ error: "Only Super Admins and Managers can share tasks." }, { status: 403 });
     }
 
+    if (caller.role === "manager") {
+      const firmRecord = await readServerDoc("firm_settings", "primary");
+      const firmControls = firmRecord ? fromFirestoreFields(firmRecord.fields) : {};
+      if (firmControls.managerMayShare === false) {
+        return NextResponse.json({ error: "Manager delegation is disabled by the Super Admin." }, { status: 403 });
+      }
+    }
+
     const { id } = await params;
     if (!id || id.length > 300 || id.includes("/")) {
       return NextResponse.json({ error: "Invalid assignment ID." }, { status: 400 });
