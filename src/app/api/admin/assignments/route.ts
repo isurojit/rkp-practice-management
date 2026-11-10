@@ -170,10 +170,13 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Assignment creation failed:", error);
+    const message = error instanceof Error ? error.message : "";
     return NextResponse.json({
-      error: error instanceof Error && error.message.startsWith("Only active")
-        ? error.message
-        : "Could not create the assignment. Check service account configuration and permissions.",
+      error: message.startsWith("Only active")
+        ? message
+        : /not configured|service account|credentials/i.test(message)
+          ? "Firebase server administration is not configured in Netlify. Super Admin: set FIREBASE_SERVICE_ACCOUNT_JSON securely before creating assignments."
+          : "Could not create the assignment. Check permissions and server function logs.",
     }, { status: 503 });
   }
 }
