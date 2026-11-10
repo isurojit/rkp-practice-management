@@ -569,3 +569,266 @@ html.dark [data-slot="dialog-content"] [data-slot="dialog-close"] { color: #cbd5
 @media print {
   html.dark .rkp-page, html.dark .rkp-page * { color: #111827 !important; background: #fff !important; }
 }
+
+
+/* ------------------------------------------------------------
+   RKP THEME CONTRAST FIX — unified semantic surfaces, Nov 2026.
+   Dark backgrounds must never keep light-theme ink colours.
+   Scope the overrides to the application, not the sign-in art.
+   ------------------------------------------------------------ */
+.rkp-app-shell {
+  --rkp-surface: #ffffff;
+  --rkp-surface-raised: #ffffff;
+  --rkp-surface-soft: #f3f7fd;
+  --rkp-border-strong: #dbe5f3;
+  --rkp-text-strong: #14243b;
+  --rkp-text-primary: #253750;
+  --rkp-text-secondary: #53657f;
+  --rkp-text-muted: #62738b;
+  --rkp-surface-shadow: 0 6px 25px rgba(19, 43, 82, .05);
+  --rkp-accent-soft: #e9f1ff;
+  --rkp-accent-ink: #2459b8;
+}
+
+html.dark .rkp-app-shell {
+  --rkp-surface: #182940;
+  --rkp-surface-raised: #1b2d48;
+  --rkp-surface-soft: #213751;
+  --rkp-border-strong: #38506d;
+  --rkp-text-strong: #f7faff;
+  --rkp-text-primary: #e5efff;
+  --rkp-text-secondary: #cbd8ea;
+  --rkp-text-muted: #b6c6dc;
+  --rkp-surface-shadow: 0 12px 38px rgba(2, 8, 23, .23);
+  --rkp-accent-soft: #213f68;
+  --rkp-accent-ink: #bad6ff;
+  color: var(--rkp-text-primary);
+  background-color: #0d1729;
+  background-image:
+    radial-gradient(ellipse 850px 500px at 100% -6%, rgba(50, 95, 185, .19), transparent 75%),
+    radial-gradient(ellipse 620px 500px at 0% 100%, rgba(8, 135, 145, .085), transparent 78%);
+}
+
+.rkp-page { color: var(--rkp-text-primary); }
+.rkp-page h1 { color: var(--rkp-text-strong); }
+.rkp-page :is(h2,h3,h4) { color: var(--rkp-text-strong); }
+
+.rkp-surface-card {
+  color: var(--rkp-text-primary);
+  background: var(--rkp-surface);
+  border: 1px solid var(--rkp-border-strong);
+  box-shadow: var(--rkp-surface-shadow);
+}
+.rkp-hero-panel {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  padding: clamp(22px, 2.4vw, 34px);
+  border: 1px solid var(--rkp-border-strong);
+  border-radius: 26px;
+  background:
+    radial-gradient(ellipse 320px 160px at 86% -20%, rgba(55, 143, 241, .12), transparent 90%),
+    radial-gradient(ellipse 270px 220px at 100% 100%, rgba(14, 159, 171, .08), transparent 85%),
+    var(--rkp-surface);
+  box-shadow: var(--rkp-surface-shadow);
+}
+.rkp-hero-panel::after {
+  content: "";
+  position: absolute;
+  width: 260px;
+  height: 260px;
+  right: -68px;
+  top: -165px;
+  border-radius: 50%;
+  pointer-events: none;
+  border: 1px solid rgba(61, 123, 221, .16);
+  box-shadow: 0 0 0 32px rgba(61, 123, 221, .027), 0 0 0 66px rgba(61, 123, 221, .025);
+}
+.rkp-hero-panel > * { position: relative; z-index: 1; }
+
+.rkp-metric-card {
+  --metric-hue: #376fe0;
+  --metric-tint: #e8f0ff;
+  --metric-ambient: rgba(55, 111, 224, .09);
+  color: var(--rkp-text-primary);
+  background:
+    radial-gradient(circle at 100% 0%, var(--metric-ambient), transparent 55%),
+    var(--rkp-surface);
+  border: 1px solid var(--rkp-border-strong);
+  box-shadow: var(--rkp-surface-shadow);
+}
+.rkp-metric-card--indigo {
+  --metric-hue: #6756d8;
+  --metric-tint: #eeeaff;
+  --metric-ambient: rgba(103, 86, 216, .085);
+}
+.rkp-metric-card--teal {
+  --metric-hue: #078b86;
+  --metric-tint: #e3f6f2;
+  --metric-ambient: rgba(7, 139, 134, .08);
+}
+.rkp-metric-card--amber {
+  --metric-hue: #b76c13;
+  --metric-tint: #fff3df;
+  --metric-ambient: rgba(183, 108, 19, .08);
+}
+.rkp-metric-card .rkp-metric-value { color: var(--rkp-text-strong); }
+.rkp-metric-card .rkp-metric-label { color: var(--rkp-text-secondary); }
+.rkp-metric-card .rkp-metric-detail { color: var(--rkp-text-muted); }
+.rkp-metric-card .rkp-metric-icon {
+  color: var(--metric-hue);
+  background: var(--metric-tint);
+}
+.rkp-metric-card .rkp-metric-dot { background: var(--metric-hue); }
+
+html.dark .rkp-metric-card--blue {
+  --metric-hue: #92c3ff;
+  --metric-tint: #213f66;
+  --metric-ambient: rgba(69, 145, 245, .18);
+}
+html.dark .rkp-metric-card--indigo {
+  --metric-hue: #bdb4ff;
+  --metric-tint: #343460;
+  --metric-ambient: rgba(133, 117, 242, .14);
+}
+html.dark .rkp-metric-card--teal {
+  --metric-hue: #84f1d6;
+  --metric-tint: #1c4b4c;
+  --metric-ambient: rgba(19, 184, 163, .12);
+}
+html.dark .rkp-metric-card--amber {
+  --metric-hue: #ffd091;
+  --metric-tint: #55402d;
+  --metric-ambient: rgba(232, 168, 74, .12);
+}
+
+/* Tables inherit app ink, not the old hardcoded dark-navy text. */
+.rkp-page table { color: var(--rkp-text-primary); }
+.rkp-page table th { color: var(--rkp-text-secondary); }
+.rkp-page table td { color: var(--rkp-text-primary); }
+.rkp-page table thead { background: var(--rkp-surface-soft); }
+.rkp-table-shell {
+  background: var(--rkp-surface);
+  border: 1px solid var(--rkp-border-strong);
+  border-radius: 18px;
+  overflow-x: auto;
+}
+.rkp-page .rkp-table-shell table { min-width: 720px; }
+.rkp-table-shell tbody tr:hover { background: var(--rkp-surface-soft); }
+
+/* Preserve the white labels used by dark/action buttons. */
+html.dark .rkp-page :is([class*="bg-white"],[class*="bg-slate-50"],[class*="bg-slate-100"]) {
+  background-color: var(--rkp-surface) !important;
+}
+html.dark .rkp-page [class*="bg-slate-50"],
+html.dark .rkp-page [class*="bg-slate-100"] {
+  background-color: var(--rkp-surface-soft) !important;
+}
+html.dark .rkp-page :is([class*="bg-white"],[class*="bg-slate-50"],[class*="bg-slate-100"])[class*="hover:bg-slate"]:hover {
+  background-color: #2a4363 !important;
+}
+
+/* Light-theme slate and arbitrary hex text previously stayed almost black
+   on dark panels, notably client rows and dashboard KPI figures. */
+html.dark .rkp-page :is(
+  [class*="text-slate-900"],
+  [class*="text-slate-800"],
+  [class*="text-slate-700"],
+  [class*="text-slate-600"],
+  [class*="text-gray-900"],
+  [class*="text-gray-800"],
+  [class*="text-gray-700"],
+  [class*="text-black"],
+  [class*="text-[#"]
+) {
+  color: var(--rkp-text-primary) !important;
+}
+html.dark .rkp-page :is(
+  [class*="text-slate-500"],
+  [class*="text-slate-400"],
+  [class*="text-gray-500"],
+  [class*="text-gray-400"]
+) {
+  color: var(--rkp-text-muted) !important;
+}
+html.dark .rkp-page :is(h1,h2,h3,h4)[class*="text-slate"],
+html.dark .rkp-page .rkp-metric-value {
+  color: var(--rkp-text-strong) !important;
+}
+html.dark .rkp-page [class*="border-[#"] { border-color: var(--rkp-border-strong) !important; }
+html.dark .rkp-page table {
+  color: var(--rkp-text-primary) !important;
+}
+html.dark .rkp-page table th {
+  color: #c1d1e9 !important;
+  background-color: var(--rkp-surface-soft);
+}
+html.dark .rkp-page table td {
+  color: var(--rkp-text-primary) !important;
+  border-color: var(--rkp-border-strong);
+}
+html.dark .rkp-page :is(.shadow-lg,.shadow-xl) {
+  --tw-shadow: var(--rkp-surface-shadow);
+}
+
+/* Theme-correct tinted status chips; colour is preserved, contrast is not lost. */
+html.dark .rkp-page [class*="bg-blue-50"],
+html.dark .rkp-page [class*="bg-sky-50"],
+html.dark .rkp-page [class*="bg-blue-100"],
+html.dark .rkp-page [class*="bg-sky-100"] {
+  background-color: #243f64 !important;
+}
+html.dark .rkp-page :is([class*="text-blue-700"],[class*="text-blue-800"],[class*="text-blue-900"],[class*="text-sky-700"],[class*="text-sky-800"]) {
+  color: #c5e1ff !important;
+}
+html.dark .rkp-page [class*="bg-emerald-50"],
+html.dark .rkp-page [class*="bg-green-50"],
+html.dark .rkp-page [class*="bg-teal-50"] {
+  background-color: #16413c !important;
+}
+html.dark .rkp-page :is([class*="text-emerald-700"],[class*="text-emerald-800"],[class*="text-emerald-900"],[class*="text-green-700"],[class*="text-teal-700"]) {
+  color: #abf5d9 !important;
+}
+html.dark .rkp-page [class*="bg-amber-50"],
+html.dark .rkp-page [class*="bg-yellow-50"],
+html.dark .rkp-page [class*="bg-orange-50"] {
+  background-color: #4e3b29 !important;
+}
+html.dark .rkp-page :is([class*="text-amber-700"],[class*="text-amber-800"],[class*="text-orange-700"],[class*="text-yellow-700"]) {
+  color: #ffe0a6 !important;
+}
+html.dark .rkp-page [class*="bg-rose-50"],
+html.dark .rkp-page [class*="bg-red-50"] { background-color: #502a3d !important; }
+html.dark .rkp-page :is([class*="text-red-700"],[class*="text-red-800"],[class*="text-rose-700"],[class*="text-rose-800"]) {
+  color: #ffb7c6 !important;
+}
+html.dark .rkp-page [class*="bg-violet-50"],
+html.dark .rkp-page [class*="bg-indigo-50"] { background-color: #343560 !important; }
+html.dark .rkp-page :is([class*="text-indigo-700"],[class*="text-violet-700"],[class*="text-violet-800"]) {
+  color: #d2c4ff !important;
+}
+
+/* Prevent dark rows with inherited navy ink from remaining illegible. */
+html.dark .rkp-page :is([class*="bg-white"],[class*="bg-slate-50"],[data-slot="card"]) {
+  color: var(--rkp-text-primary);
+  border-color: var(--rkp-border-strong) !important;
+}
+html.dark .rkp-page [class*="text-slate-300"] { color: #cfdaea !important; }
+
+/* The top header's muted labels should remain visible, too. */
+html.dark .rkp-topbar :is([class*="text-slate-500"],[class*="text-slate-400"]) {
+  color: #b7c7de !important;
+}
+
+@media (max-width: 640px) {
+  .rkp-hero-panel { border-radius: 20px; padding: 20px; }
+  .rkp-metric-card { border-radius: 19px; }
+}
+
+@media print {
+  .rkp-metric-card, .rkp-surface-card, .rkp-hero-panel, .rkp-table-shell {
+    color: #111827 !important;
+    background: #fff !important;
+    box-shadow: none !important;
+  }
+}
