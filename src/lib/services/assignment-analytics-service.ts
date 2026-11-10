@@ -1,40 +1,33 @@
-import { getAssignments } from "./assignment-service";
-import { getTimesheets } from "./timesheet-service";
-import { getAssignmentChecklist } from "./assignment-checklist-service";
+import { auth } from "@/lib/firebase";
+import type { Assignment } from "@/types/assignment";
 
-export async function getAssignmentsWithAnalytics() {
-  const assignments = await getAssignments();
-  const timesheets = await getTimesheets();
+export type BoardAssignment = Assignment & {
+  actualHours: number;
+  checklistProgress: number;
+};
 
-  const result = await Promise.all(
-    assignments.map(async (assignment: any) => {
-      const assignmentTimesheets = timesheets.filter(
-        (item: any) => item.assignmentId === assignment.id,
-      );
+/**
+ * A single authorized server request. Do not load all time entries in
+ * the browser or make separate checklist requests for each assignment.
+ */
+export async function getAssignmentsWithAnalytics(): Promise<BoardAssignment[]> {
+  const user = auth.currentUser;
+  if (!user) throw new Error("Your session expired. Please sign in again.");
 
-      const actualHours = assignmentTimesheets.reduce(
-        (sum: number, item: any) => sum + Number(item.totalHours || 0),
-        0,
-      );
+  const response = await fetch("/api/assignment-board", {
+    method: "GET",
+    headers: { Authorization: "Bearer " + await user.getIdToken() },
+    cache: "no-store",
+  });
 
-      const checklist = await getAssignmentChecklist(assignment.id);
+  const result = (await response.json()) as {
+    assignments?: BoardAssignment[];
+    error?: string;
+  };
 
-      const checklistProgress =
-        checklist.length === 0
-          ? 0
-          : Math.round(
-              (checklist.filter((item) => item.completed).length /
-                checklist.length) *
-                100,
-            );
+  if (!response.ok) {
+    throw new Error(result.error || "Unable to load assignment board.");
+  }
 
-      return {
-        ...assignment,
-        actualHours,
-        checklistProgress,
-      };
-    }),
-  );
-
-  return result;
+  return result.assignments || [];
 }
