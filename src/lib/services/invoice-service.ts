@@ -1,14 +1,39 @@
-import { addDoc, collection, getDocs } from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
 
-import { db } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
 import { Invoice } from "@/types/invoice";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 
-export async function createInvoice(data: Omit<Invoice, "id">) {
-  return await addDoc(collection(db, "invoices"), {
-    ...data,
-    createdAt: new Date(),
+/**
+ * Server re-verifies ownership, duration, billing state and rate, then commits
+ * invoice + session marks together. Browser-provided hours/rates are not trusted.
+ */
+export async function createInvoice(data: Omit<Invoice, "id">): Promise<{ id: string }> {
+  const user = auth.currentUser;
+  if (!user) throw new Error("Sign in before generating an invoice.");
+  const timesheetIds = (data.lineItems || []).map((item) => item.timesheetId);
+
+  const response = await fetch("/api/admin/invoices", {
+    method: "POST",
+    headers: {
+      Authorization: "Bearer " + await user.getIdToken(),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      clientId: data.clientId,
+      timesheetIds,
+      fromDate: data.fromDate || "",
+      toDate: data.toDate || "",
+    }),
+    cache: "no-store",
   });
+
+  const result = (await response.json()) as { id?: string; error?: string };
+  if (!response.ok || !result.id) {
+    throw new Error(result.error || "Invoice could not be generated.");
+  }
+
+  return { id: result.id };
 }
 
 export async function getInvoices(): Promise<Invoice[]> {
